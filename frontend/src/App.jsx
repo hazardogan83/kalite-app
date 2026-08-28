@@ -7,7 +7,7 @@ export default function App() {
   const [girisSifre, setGirisSifre] = useState('123456');
 
   const [aktifSekme, setAktifSekme] = useState('dashboard');
-  const [acikMenu, setAcikMenu] = useState({ kalite: true, depo: false, uretim: false, siparis: false, yonetim: false });
+  const [acikMenu, setAcikMenu] = useState({ kalite: true, depo: true, uretim: false, siparis: false, yonetim: false });
 
   // Girdi Kontrol State'leri
   const [girdiler, setGirdiler] = useState([]);
@@ -75,21 +75,21 @@ export default function App() {
         parti_no: partiNo,
         miktar: miktar ? Number(miktar) : 0, 
         kontrol_sonucu: kontrolSonucu,
-        kontrol_eden: kontrolEden || 'Depo Sorumlusu'
+        kontrol_eden: kontrolEden || 'Hazar'
       }
     ]);
 
     if (error) {
       alert("Hata: " + error.message);
     } else {
-      alert("Girdi kontrol kaydı eklendi!");
+      alert("Girdi kontrol kaydı başarıyla eklendi!");
       setMalzemeAdi(''); setTeknikOzellikler(''); setMalzemeTuru(''); setTedarikciFirma(''); setIrsaliyeNo(''); setPartiNo(''); setMiktar(''); setKontrolEden('');
       verileriGetir();
     }
   };
 
   const girdiSil = async (id) => {
-    if (window.confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
+    if (window.confirm("Bu girdi kontrol kaydını silmek istediğinize emin misiniz?")) {
       await supabase.from('girdi_kontrol').delete().eq('id', id);
       verileriGetir();
     }
@@ -183,7 +183,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f4f6f9', margin: 0 }}>
       
-      {/* SOL MENÜ */}
+      {/* SOL MENÜ (KAPSAMLI YAPIT) */}
       <div style={{ width: '280px', backgroundColor: '#1e1b4b', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', overflowY: 'auto' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', borderBottom: '1px solid #312e81', paddingBottom: '15px' }}>
@@ -202,7 +202,7 @@ export default function App() {
               🏠 Ana Sayfa / Kurumsal
             </button>
 
-            {/* Kalite Yönetimi */}
+            {/* Kalite Yönetimi (KYS) - Sadece Dokümantasyon */}
             <div>
               <button 
                 onClick={() => menuToggle('kalite')}
@@ -224,7 +224,7 @@ export default function App() {
               )}
             </div>
 
-            {/* Depo & Malzeme Kabul */}
+            {/* Depo & Malzeme Kabul - Operasyonel Süreç */}
             <div>
               <button 
                 onClick={() => menuToggle('depo')}
@@ -251,7 +251,7 @@ export default function App() {
         <div style={{ borderTop: '1px solid #312e81', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '13px', fontWeight: '500' }}>Hazar</div>
-            <div style={{ fontSize: '11px', color: '#c084fc' }}>hazar@minyatur.com</div>
+            <div style={{ fontSize: '11px', color: '#c084fc' }}>hazar@minyaturmakina.com</div>
           </div>
           <button onClick={() => setOturumAcildi(false)} style={{ background: '#312e81', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
             Çıkış
@@ -294,7 +294,7 @@ export default function App() {
           </div>
         )}
 
-        {/* GİRDİ KONTROL */}
+        {/* GİRDİ KONTROL (Depo & Kabul Başlığı Altında) */}
         {aktifSekme === 'girdi_kontrol' && (
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>Depo Malzeme Kabul & Girdi Kontrol</h1>
