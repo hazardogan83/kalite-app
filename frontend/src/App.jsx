@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function App() {
-  // Oturum State'i
   const [oturumAcildi, setOturumAcildi] = useState(false);
   const [girisEmail, setGirisEmail] = useState('hazar@minyaturmakina.com');
   const [girisSifre, setGirisSifre] = useState('123456');
 
-  // Aktif Sekme / Menü State'leri
   const [aktifSekme, setAktifSekme] = useState('dashboard');
   const [acikMenu, setAcikMenu] = useState({ kalite: true, depo: false, uretim: false, siparis: false, yonetim: false });
 
@@ -23,7 +21,7 @@ export default function App() {
   const [kontrolSonucu, setKontrolSonucu] = useState('Kabul');
   const [kontrolEden, setKontrolEden] = useState('');
 
-  // Doküman Master Listesi State'leri (Yerel Yol Destekli)
+  // Doküman Master State'leri (Yerel Yol Destekli)
   const [dokumanlar, setDokumanlar] = useState([]);
   const [aramaMetni, setAramaMetni] = useState('');
   const [dokumanKodu, setDokumanKodu] = useState('');
@@ -32,18 +30,11 @@ export default function App() {
   const [format, setFormat] = useState('Word');
   const [yerelDosyaYolu, setYerelDosyaYolu] = useState('');
 
-  // Verileri Çekme
   const verileriGetir = async () => {
-    const { data: girdiData } = await supabase
-      .from('girdi_kontrol')
-      .select('*')
-      .order('id', { ascending: false });
+    const { data: girdiData } = await supabase.from('girdi_kontrol').select('*').order('id', { ascending: false });
     if (girdiData) setGirdiler(girdiData);
 
-    const { data: dokumanData } = await supabase
-      .from('dokuman_master')
-      .select('*')
-      .order('id', { ascending: false });
+    const { data: dokumanData } = await supabase.from('dokuman_master').select('*').order('id', { ascending: false });
     if (dokumanData) setDokumanlar(dokumanData);
   };
 
@@ -53,7 +44,6 @@ export default function App() {
     }
   }, [oturumAcildi]);
 
-  // Giriş Yapma Fonksiyonu
   const handleGiris = (e) => {
     e.preventDefault();
     if (girisEmail && girisSifre) {
@@ -64,12 +54,10 @@ export default function App() {
     }
   };
 
-  // Akordeon menü açma/kapatma
   const menuToggle = (menuAdi) => {
     setAcikMenu(prev => ({ ...prev, [menuAdi]: !prev[menuAdi] }));
   };
 
-  // Girdi Ekleme
   const yeniGirdiEkle = async (e) => {
     e.preventDefault();
     if (!malzemeAdi || !tedarikciFirma) {
@@ -94,13 +82,12 @@ export default function App() {
     if (error) {
       alert("Hata: " + error.message);
     } else {
-      alert("Girdi kontrol ve malzeme kabul kaydı eklendi!");
+      alert("Girdi kontrol kaydı eklendi!");
       setMalzemeAdi(''); setTeknikOzellikler(''); setMalzemeTuru(''); setTedarikciFirma(''); setIrsaliyeNo(''); setPartiNo(''); setMiktar(''); setKontrolEden('');
       verileriGetir();
     }
   };
 
-  // Girdi Silme
   const girdiSil = async (id) => {
     if (window.confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
       await supabase.from('girdi_kontrol').delete().eq('id', id);
@@ -108,7 +95,6 @@ export default function App() {
     }
   };
 
-  // Yerel / Ağ Yolu ile Doküman Ekleme
   const yeniDokumanEkle = async (e) => {
     e.preventDefault();
     if (!dokumanKodu || !dokumanAdi) {
@@ -134,7 +120,7 @@ export default function App() {
         format: format, 
         revizyon_no: yeniRevizyonNo, 
         yayin_tarihi: new Date().toISOString().split('T')[0],
-        orijinal_dosya_url: yerelDosyaYolu // Yerel yol / link buraya kaydediliyor
+        orijinal_dosya_url: yerelDosyaYolu 
       }
     ]);
 
@@ -149,7 +135,6 @@ export default function App() {
     }
   };
 
-  // Doküman Silme
   const dokumanSil = async (id) => {
     if (window.confirm("Bu dokümanı master listeden silmek istiyor musunuz?")) {
       await supabase.from('dokuman_master').delete().eq('id', id);
@@ -157,7 +142,6 @@ export default function App() {
     }
   };
 
-  // Arama filtresi
   const filtrelenmisDokumanlar = dokumanlar.filter(doc => 
     doc.dokuman_adi.toLowerCase().includes(aramaMetni.toLowerCase()) ||
     doc.dokuman_kodu.toLowerCase().includes(aramaMetni.toLowerCase()) ||
@@ -280,9 +264,32 @@ export default function App() {
         
         {aktifSekme === 'dashboard' && (
           <div>
-            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', color: 'white', padding: '40px', borderRadius: '12px', marginBottom: '30px' }}>
+            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', color: 'white', padding: '40px', borderRadius: '12px', marginBottom: '30px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
               <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 10px 0' }}>Minyatür Makina Robot Sistemleri</h1>
-              <p style={{ color: '#e9d5ff', fontSize: '15px', margin: 0 }}>Yerel KYS Entegrasyonlu ERP Paneli</p>
+              <p style={{ color: '#e9d5ff', fontSize: '15px', margin: 0 }}>Endüstriyel Otomasyon, Kalite Yönetimi ve Entegre ERP Paneli</p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #581c87' }}>
+                <h3 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>🛡️ Kalite Güvence & KYS</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
+                  ISO 9001 standartlarına uygun doküman master listesi, revizyon takip mekanizmaları ve yerel ağ dosya entegrasyonu.
+                </p>
+              </div>
+
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #3b0764' }}>
+                <h3 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>📦 Depo & Girdi Kontrol</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
+                  Tedarikçi hammadde kabul süreçleri, irsaliye takibi ve lot bazlı kalite onay mekanizmaları.
+                </p>
+              </div>
+
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #4338ca' }}>
+                <h3 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>⚙️ Robotik & Otomasyon</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
+                  Özel imalat robot hücreleri, üretim hattı takibi ve mühendislik operasyonları.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -372,7 +379,7 @@ export default function App() {
                   </select>
                   
                   <div style={{ gridColumn: 'span 2' }}>
-                    <input type="text" placeholder="Dosya Yolu / Link (Örn: file:///C:/KYS/talimat.docx veya ağ yolu)" value={yerelDosyaYolu} onChange={(e) => setYerelDosyaYolu(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                    <input type="text" placeholder="Dosya Yolu / Link (Örn: file:///C:/KYS/talimat.docx)" value={yerelDosyaYolu} onChange={(e) => setYerelDosyaYolu(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                   </div>
 
                   <button type="submit" style={{ gridColumn: 'span 2', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
