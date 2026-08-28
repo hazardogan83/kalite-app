@@ -20,7 +20,6 @@ export default function App() {
   const [dokumanAdi, setDokumanAdi] = useState('');
   const [kategori, setKategori] = useState('Talimat');
   const [format, setFormat] = useState('Word');
-  const [revizyonNo, setRevizyonNo] = useState('00');
   
   // Dosyalar için ayrı state'ler
   const [secilenPdfDosya, setSecilenPdfDosya] = useState(null);
@@ -88,7 +87,7 @@ export default function App() {
     }
   };
 
-  // Yeni Doküman ve Çift Dosya Ekleme
+  // Yeni Doküman Ekleme veya Otomatik Revizyon Artırarak Güncelleme
   const yeniDokumanEkle = async (e) => {
     e.preventDefault();
     if (!dokumanKodu || !dokumanAdi) {
@@ -101,7 +100,20 @@ export default function App() {
     let orijinalUrl = null;
 
     try {
-      // 1. PDF Dosyasını Yükle
+      // 1. Aynı doküman kodundan daha önce var mı kontrol edelim (Revizyon mantığı için)
+      const mevcutDokumanlar = dokumanlar.filter(d => d.dokuman_kodu.toLowerCase() === dokumanKodu.toLowerCase());
+      let yeniRevizyonNo = "00";
+
+      if (mevcutDokumanlar.length > 0) {
+        // En yüksek revizyon numarasını bul ve 1 artır (Örn: "00" -> "01", "01" -> "02")
+        const enYuksekRev = mevcutDokumanlar.reduce((max, doc) => {
+          return parseInt(doc.revizyon_no || "0") > parseInt(max || "0") ? doc.revizyon_no : max;
+        }, "00");
+        
+        yeniRevizyonNo = String(parseInt(enYuksekRev) + 1).padStart(2, '0');
+      }
+
+      // 2. PDF Dosyasını Yükle
       if (secilenPdfDosya) {
         const temizAd = dosyaadiniTemizle(secilenPdfDosya.name);
         const pdfAdi = `pdf_${Date.now()}_${temizAd}`;
@@ -117,7 +129,7 @@ export default function App() {
         pdfUrl = pdfUrlData.publicUrl;
       }
 
-      // 2. Orijinal Dosyayı Yükle
+      // 3. Orijinal Dosyayı Yükle
       if (secilenOrijinalDosya) {
         const temizAd = dosyaadiniTemizle(secilenOrijinalDosya.name);
         const orijinalAdi = `orijinal_${Date.now()}_${temizAd}`;
@@ -133,14 +145,14 @@ export default function App() {
         orijinalUrl = orijinalUrlData.publicUrl;
       }
 
-      // 3. Veritabanına Kaydet
+      // 4. Veritabanına Yeni Revizyon Olarak Kaydet
       const { error: dbError } = await supabase.from('dokuman_master').insert([
         { 
-          dokuman_kodu: dokumanKodu, 
+          dokuman_kodu: dokumanKodu.toUpperCase(), 
           dokuman_adi: dokumanAdi, 
           kategori: kategori, 
           format: format, 
-          revizyon_no: revizyonNo, 
+          revizyon_no: yeniRevizyonNo, 
           yayin_tarihi: new Date().toISOString().split('T')[0],
           dosya_url: pdfUrl,
           orijinal_dosya_url: orijinalUrl
@@ -149,7 +161,7 @@ export default function App() {
 
       if (dbError) throw dbError;
 
-      alert("Doküman ve dosyaları başarıyla eklendi!");
+      alert(`Doküman başarıyla kaydedildi! (Revizyon: Rev.${yeniRevizyonNo})`);
       setDokumanKodu(''); 
       setDokumanAdi(''); 
       setSecilenPdfDosya(null);
@@ -319,7 +331,7 @@ export default function App() {
           <div>
             <div style={{ marginBottom: '25px' }}>
               <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Doküman Master Listesi</h1>
-              <p style={{ color: '#64748b', margin: 0 }}>Prosedürler, talimatlar ve formlar arşivi</p>
+              <p style={{ color: '#64748b', margin: 0 }}>Prosedürler, talimatlar ve formlar arşivi (Otomatik Revizyon Takipli)</p>
             </div>
 
             {/* Arama ve Yeni Doküman Ekleme Alanı */}
@@ -335,12 +347,12 @@ export default function App() {
                   onChange={(e) => setAramaMetni(e.target.value)}
                   style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '14px' }}
                 />
-                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', marginBottom: 0 }}>Aradığınız ifadeye uygun dokümanlar anlık olarak filtrelenir.</p>
+                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', marginBottom: 0 }}>Aynı kodla yeni dosya yüklerseniz sistem otomatik olarak revizyonu artırır (Örn: Rev.00 -&gt; Rev.01).</p>
               </div>
 
-              {/* Yeni Doküman Ekleme Formu */}
+              {/* Yeni Doküman / Revizyon Ekleme Formu */}
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>➕ Yeni Doküman ve Dosya Tanımla</h3>
+                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>➕ Yeni Doküman / Revizyon Ekle</h3>
                 <form onSubmit={yeniDokumanEkle} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <input type="text" placeholder="Doküman Kodu (Örn: TL-01)" value={dokumanKodu} onChange={(e) => setDokumanKodu(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                   <input type="text" placeholder="Doküman Adı" value={dokumanAdi} onChange={(e) => setDokumanAdi(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
@@ -369,7 +381,7 @@ export default function App() {
                   </div>
 
                   <button type="submit" disabled={yukleniyor} style={{ gridColumn: 'span 2', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    {yukleniyor ? 'Yükleniyor...' : 'Dokümanı ve Dosyaları Kaydet'}
+                    {yukleniyor ? 'Yükleniyor...' : 'Kaydet ve Revizyonu Yönet'}
                   </button>
                 </form>
               </div>
@@ -412,7 +424,11 @@ export default function App() {
                             {doc.format || 'Word'}
                           </span>
                         </td>
-                        <td style={{ padding: '12px' }}>Rev.{doc.revizyon_no}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                            Rev.{doc.revizyon_no || '00'}
+                          </span>
+                        </td>
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
