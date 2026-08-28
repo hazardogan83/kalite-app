@@ -84,7 +84,6 @@ export default function App() {
     let dosyaPublicUrl = null;
 
     try {
-      // 1. Eğer dosya seçildiyse Supabase Storage'a yükle
       if (secilenDosya) {
         const dosyaAdi = `${Date.now()}_${secilenDosya.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -95,7 +94,6 @@ export default function App() {
           throw new Error("Dosya yükleme hatası: " + uploadError.message);
         }
 
-        // 2. Yüklenen dosyanın görüntüleme linkini al
         const { data: urlData } = supabase.storage
           .from('dokumanlar')
           .getPublicUrl(dosyaAdi);
@@ -103,7 +101,6 @@ export default function App() {
         dosyaPublicUrl = urlData.publicUrl;
       }
 
-      // 3. Veritabanına kaydı ekle
       const { error: dbError } = await supabase.from('dokuman_master').insert([
         { 
           dokuman_kodu: dokumanKodu, 
@@ -324,7 +321,7 @@ export default function App() {
                     <option value="PowerPoint">PowerPoint (.pptx)</option>
                   </select>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Bilgisayardan Dosya Seç (Word/Excel/PDF):</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Bilgisayardan Dosya Seç (Önerilen: PDF):</label>
                     <input type="file" onChange={(e) => setSecilenDosya(e.target.files[0])} style={{ width: '100%', fontSize: '13px' }} />
                   </div>
                   <button type="submit" disabled={yukleniyor} style={{ gridColumn: 'span 2', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -375,8 +372,13 @@ export default function App() {
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           {doc.dosya_url ? (
-                            <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#0284c7', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
-                              Dosyayı Görüntüle
+                            <a 
+                              href={`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(doc.dosya_url)}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={{ backgroundColor: '#0284c7', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}
+                            >
+                              Tarayıcıda Aç
                             </a>
                           ) : (
                             <span style={{ color: '#94a3b8', fontSize: '12px' }}>Dosya Yok</span>
