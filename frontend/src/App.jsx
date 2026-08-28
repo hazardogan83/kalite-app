@@ -95,7 +95,7 @@ export default function App() {
           throw new Error("Dosya yükleme hatası: " + uploadError.message);
         }
 
-        // 2. Yüklenen dosyanın indirme/görüntüleme linkini al
+        // 2. Yüklenen dosyanın görüntüleme linkini al
         const { data: urlData } = supabase.storage
           .from('dokumanlar')
           .getPublicUrl(dosyaAdi);
@@ -375,8 +375,8 @@ export default function App() {
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           {doc.dosya_url ? (
-                            <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#10b981', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
-                              Aç / İndir
+                            <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#0284c7', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
+                              Dosyayı Görüntüle
                             </a>
                           ) : (
                             <span style={{ color: '#94a3b8', fontSize: '12px' }}>Dosya Yok</span>
