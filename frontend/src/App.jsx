@@ -9,16 +9,19 @@ export default function App() {
 
   // Aktif Sekme / Menü State'leri
   const [aktifSekme, setAktifSekme] = useState('dashboard');
-  const [acikMenu, setAcikMenu] = useState({ kalite: true, uretim: false, siparis: false, yonetim: false });
+  const [acikMenu, setAcikMenu] = useState({ kalite: true, depo: false, uretim: false, siparis: false, yonetim: false });
 
-  // Girdi Kontrol State'leri
+  // Girdi Kontrol State'leri (Geliştirilmiş)
   const [girdiler, setGirdiler] = useState([]);
   const [malzemeAdi, setMalzemeAdi] = useState('');
   const [teknikOzellikler, setTeknikOzellikler] = useState('');
   const [malzemeTuru, setMalzemeTuru] = useState('');
   const [tedarikciFirma, setTedarikciFirma] = useState('');
+  const [irsaliyeNo, setIrsaliyeNo] = useState('');
+  const [partiNo, setPartiNo] = useState('');
   const [miktar, setMiktar] = useState('');
   const [kontrolSonucu, setKontrolSonucu] = useState('Kabul');
+  const [kontrolEden, setKontrolEden] = useState('');
 
   // Doküman Master Listesi State'leri
   const [dokumanlar, setDokumanlar] = useState([]);
@@ -83,7 +86,7 @@ export default function App() {
     setAcikMenu(prev => ({ ...prev, [menuAdi]: !prev[menuAdi] }));
   };
 
-  // Girdi Ekleme
+  // Girdi Ekleme (Geliştirilmiş Alanlarla)
   const yeniGirdiEkle = async (e) => {
     e.preventDefault();
     if (!malzemeAdi || !tedarikciFirma) {
@@ -92,14 +95,24 @@ export default function App() {
     }
 
     const { error } = await supabase.from('girdi_kontrol').insert([
-      { malzeme_adi: malzemeAdi, teknik_ozellikler: teknikOzellikler, malzeme_turu: malzemeTuru, tedarikci_firma: tedarikciFirma, miktar: miktar ? Number(miktar) : 0, kontrol_sonucu: kontrolSonucu }
+      { 
+        malzeme_adi: malzemeAdi, 
+        teknik_ozellikler: teknikOzellikler, 
+        malzeme_turu: malzemeTuru, 
+        tedarikci_firma: tedarikciFirma, 
+        irsaliye_no: irsaliyeNo,
+        parti_no: partiNo,
+        miktar: miktar ? Number(miktar) : 0, 
+        kontrol_sonucu: kontrolSonucu,
+        kontrol_eden: kontrolEden || 'Depo Sorumlusu'
+      }
     ]);
 
     if (error) {
       alert("Hata: " + error.message);
     } else {
-      alert("Girdi kontrol kaydı eklendi!");
-      setMalzemeAdi(''); setTeknikOzellikler(''); setMalzemeTuru(''); setTedarikciFirma(''); setMiktar('');
+      alert("Girdi kontrol ve malzeme kabul kaydı eklendi!");
+      setMalzemeAdi(''); setTeknikOzellikler(''); setMalzemeTuru(''); setTedarikciFirma(''); setIrsaliyeNo(''); setPartiNo(''); setMiktar(''); setKontrolEden('');
       verileriGetir();
     }
   };
@@ -211,25 +224,11 @@ export default function App() {
     (doc.format && doc.format.toLowerCase().includes(aramaMetni.toLowerCase()))
   );
 
-  // 1. EĞER OTURUM AÇILMADIYSA GİRİŞ EKRANI
+  // 1. EĞER OTURUM AÇILMADIYSA GİRİŞ Ekrani
   if (!oturumAcildi) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        height: '100vh', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        backgroundColor: '#1e1b4b', 
-        fontFamily: 'sans-serif' 
-      }}>
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '40px', 
-          borderRadius: '12px', 
-          width: '100%', 
-          maxWidth: '420px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
-        }}>
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1e1b4b', fontFamily: 'sans-serif' }}>
+        <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '12px', width: '100%', maxWidth: '420px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)' }}>
           <div style={{ textAlign: 'center', marginBottom: '25px' }}>
             <div style={{ fontSize: '24px', fontWeight: '800', color: '#2e1065', letterSpacing: '-0.5px' }}>
               MİNYATÜR <span style={{ color: '#581c87' }}>MAKİNA</span>
@@ -242,38 +241,13 @@ export default function App() {
           <form onSubmit={handleGiris} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kullanıcı E-posta</label>
-              <input 
-                type="email" 
-                value={girisEmail} 
-                onChange={(e) => setGirisEmail(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
-                required 
-              />
+              <input type="email" value={girisEmail} onChange={(e) => setGirisEmail(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Şifre</label>
-              <input 
-                type="password" 
-                value={girisSifre} 
-                onChange={(e) => setGirisSifre(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
-                required 
-              />
+              <input type="password" value={girisSifre} onChange={(e) => setGirisSifre(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
             </div>
-            <button 
-              type="submit" 
-              style={{ 
-                backgroundColor: '#581c87', 
-                color: 'white', 
-                border: 'none', 
-                padding: '12px', 
-                borderRadius: '6px', 
-                fontWeight: 'bold', 
-                cursor: 'pointer',
-                marginTop: '10px',
-                fontSize: '14px'
-              }}
-            >
+            <button type="submit" style={{ backgroundColor: '#581c87', color: 'white', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px', fontSize: '14px' }}>
               Güvenli Giriş Yap
             </button>
           </form>
@@ -314,7 +288,7 @@ export default function App() {
               🏠 Ana Sayfa / Kurumsal
             </button>
 
-            {/* 1. KALİTE BÖLÜMÜ */}
+            {/* 1. KALİTE YÖNETİMİ (Sadece Sistem ve Dokümantasyon) */}
             <div>
               <button 
                 onClick={() => menuToggle('kalite')}
@@ -322,21 +296,12 @@ export default function App() {
                   width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                 }}
               >
-                <span>🛡️ Kalite Yönetimi</span>
+                <span>🛡️ Kalite Yönetimi (KYS)</span>
                 <span style={{ fontSize: '12px' }}>{acikMenu.kalite ? '▼' : '▶'}</span>
               </button>
 
               {acikMenu.kalite && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
-                  <button 
-                    onClick={() => setAktifSekme('girdi_kontrol')}
-                    style={{
-                      background: aktifSekme === 'girdi_kontrol' ? '#3b0764' : 'transparent',
-                      color: aktifSekme === 'girdi_kontrol' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
-                    }}
-                  >
-                    • Girdi Kontrol Listesi
-                  </button>
                   <button 
                     onClick={() => setAktifSekme('dokuman_master')}
                     style={{
@@ -356,7 +321,37 @@ export default function App() {
               )}
             </div>
 
-            {/* 2. ÜRETİM BÖLÜMÜ */}
+            {/* 2. DEPO & MALZEME KABUL (Girdi Kontrol Buraya Taşındı) */}
+            <div>
+              <button 
+                onClick={() => menuToggle('depo')}
+                style={{
+                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>📦 Depo & Malzeme Kabul</span>
+                <span style={{ fontSize: '12px' }}>{acikMenu.depo ? '▼' : '▶'}</span>
+              </button>
+
+              {acikMenu.depo && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
+                  <button 
+                    onClick={() => setAktifSekme('girdi_kontrol')}
+                    style={{
+                      background: aktifSekme === 'girdi_kontrol' ? '#3b0764' : 'transparent',
+                      color: aktifSekme === 'girdi_kontrol' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
+                    }}
+                  >
+                    • Girdi Kontrol & Kabul
+                  </button>
+                  <button onClick={() => alert("Stok ve Raf Takip modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    • Stok Durum Listesi
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 3. ÜRETİM BÖLÜMÜ */}
             <div>
               <button 
                 onClick={() => menuToggle('uretim')}
@@ -383,7 +378,7 @@ export default function App() {
               )}
             </div>
 
-            {/* 3. SİPARİŞ BÖLÜMÜ */}
+            {/* 4. SİPARİŞ BÖLÜMÜ */}
             <div>
               <button 
                 onClick={() => menuToggle('siparis')}
@@ -391,7 +386,7 @@ export default function App() {
                   width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                 }}
               >
-                <span>📦 Sipariş & Sevkiyat</span>
+                <span>🚚 Sipariş & Sevkiyat</span>
                 <span style={{ fontSize: '12px' }}>{acikMenu.siparis ? '▼' : '▶'}</span>
               </button>
 
@@ -407,7 +402,7 @@ export default function App() {
               )}
             </div>
 
-            {/* 4. YÖNETİM BÖLÜMÜ */}
+            {/* 5. YÖNETİM BÖLÜMÜ */}
             <div>
               <button 
                 onClick={() => menuToggle('yonetim')}
@@ -437,11 +432,7 @@ export default function App() {
             <div style={{ fontSize: '13px', fontWeight: '500' }}>Hazar</div>
             <div style={{ fontSize: '11px', color: '#c084fc' }}>hazar@minyatur.com</div>
           </div>
-          <button 
-            onClick={() => setOturumAcildi(false)}
-            style={{ background: '#312e81', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
-            title="Oturumu Kapat"
-          >
+          <button onClick={() => setOturumAcildi(false)} style={{ background: '#312e81', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }} title="Oturumu Kapat">
             Çıkış
           </button>
         </div>
@@ -453,15 +444,7 @@ export default function App() {
         {/* ================= 1. DASHBOARD / KARŞILAMA EKRANI ================= */}
         {aktifSekme === 'dashboard' && (
           <div>
-            {/* Üst Karşılama Banner (Logonun mor/lacivert tonları entegre edildi) */}
-            <div style={{ 
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', 
-              color: 'white', 
-              padding: '40px', 
-              borderRadius: '12px', 
-              marginBottom: '30px',
-              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-            }}>
+            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', color: 'white', padding: '40px', borderRadius: '12px', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                 <div>
                   <span style={{ backgroundColor: '#581c87', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
@@ -474,7 +457,7 @@ export default function App() {
                 </div>
                 <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '20px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'center' }}>
                   <div style={{ fontSize: '12px', color: '#c084fc' }}>Aktif Modül</div>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>ISO 9001 / KYS</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>Depo & KYS Entegre</div>
                 </div>
               </div>
             </div>
@@ -482,31 +465,26 @@ export default function App() {
             {/* Faaliyet Alanları Kartları */}
             <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px' }}>🏭 Faaliyet Alanlarımız & Uzmanlıklar</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-              
               <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #581c87' }}>
                 <div style={{ fontSize: '28px', marginBottom: '10px' }}>🤖</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Özel Makine İmalatı</h3>
                 <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Endüstriyel otomasyon hatları, özel amaçlı makineler ve robotik hücre entegrasyonları.</p>
               </div>
-
               <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #16a34a' }}>
                 <div style={{ fontSize: '28px', marginBottom: '10px' }}>⚙️</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Hassas Talaşlı İmalat</h3>
                 <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Alüminyum ve çelik parçaların CNC tezgahlarda yüksek hassasiyetle işlenmesi.</p>
               </div>
-
               <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #d97706' }}>
                 <div style={{ fontSize: '28px', marginBottom: '10px' }}>📐</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Fikstür & Aparat Tasarımı</h3>
                 <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Kaynak, montaj ve kalite kontrol fikstürlerinin özel tasarımı ve imalatı.</p>
               </div>
-
               <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #9333ea' }}>
                 <div style={{ fontSize: '28px', marginBottom: '10px' }}>⚡</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>EV & Batarya Çözümleri</h3>
                 <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Elektrikli araç batarya taşıyıcıları ve tren yolcu bagaj seperatör sistemleri üretimi.</p>
               </div>
-
             </div>
 
             {/* Hızlı Erişim / Özet Widget Alanı */}
@@ -518,7 +496,7 @@ export default function App() {
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#581c87', marginTop: '5px' }}>{dokumanlar.length} Adet</div>
                 </div>
                 <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>Girdi Kontrol Kayıtları</div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>Malzeme Kabul Kayıtları</div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a', marginTop: '5px' }}>{girdiler.length} Adet</div>
                 </div>
                 <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
@@ -527,44 +505,51 @@ export default function App() {
                 </div>
               </div>
             </div>
-
           </div>
         )}
 
-        {/* ================= 2. GİRDİ KONTROL LİSTESİ ================= */}
+        {/* ================= 2. GİRDİ KONTROL & MALZEME KABUL (DEPO MENÜSÜ) ================= */}
         {aktifSekme === 'girdi_kontrol' && (
           <div>
             <div style={{ marginBottom: '25px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Girdi Kontrol ve Malzeme Kabul</h1>
-              <p style={{ color: '#64748b', margin: 0 }}>Gelen hammadde, parça kayıtları ve kalite kontrol sonuçları</p>
+              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Depo Malzeme Kabul & Girdi Kontrol</h1>
+              <p style={{ color: '#64748b', margin: 0 }}>Gelen hammadde, irsaliye takibi ve depo giriş onay süreçleri</p>
             </div>
 
-            {/* Yeni Girdi Formu */}
+            {/* Geliştirilmiş Yeni Girdi Formu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '25px' }}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Yeni Girdi Kontrol Kaydı Tanımla</h3>
-              <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '15px', alignItems: 'end' }}>
+              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>📦 Yeni Malzeme Kabul Kaydı Oluştur</h3>
+              <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'end' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Adı</label>
-                  <input type="text" placeholder="Örn: Alüminyum Profil" value={malzemeAdi} onChange={(e) => setMalzemeAdi(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Adı *</label>
+                  <input type="text" placeholder="Örn: Alüminyum Profil" value={malzemeAdi} onChange={(e) => setMalzemeAdi(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Tedarikçi Firma *</label>
+                  <input type="text" placeholder="Örn: Alüminyum A.Ş." value={tedarikciFirma} onChange={(e) => setTedarikciFirma(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>İrsaliye Numarası</label>
+                  <input type="text" placeholder="Örn: IRS-2026-0841" value={irsaliyeNo} onChange={(e) => setIrsaliyeNo(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Parti / Lot Numarası</label>
+                  <input type="text" placeholder="Örn: LOT-6063-T5" value={partiNo} onChange={(e) => setPartiNo(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Teknik Özellikler</label>
-                  <input type="text" placeholder="Örn: 6063 T5" value={teknikOzellikler} onChange={(e) => setTeknikOzellikler(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="Örn: 6063 T5 Kalite" value={teknikOzellikler} onChange={(e) => setTeknikOzellikler(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Türü</label>
-                  <input type="text" placeholder="Örn: Hammadde" value={malzemeTuru} onChange={(e) => setMalzemeTuru(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Tedarikçi Firma</label>
-                  <input type="text" placeholder="Örn: Alüminyum A.Ş." value={tedarikciFirma} onChange={(e) => setTedarikciFirma(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="Örn: Hammadde / Profil" value={malzemeTuru} onChange={(e) => setMalzemeTuru(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Miktar</label>
                   <input type="number" placeholder="Örn: 250" value={miktar} onChange={(e) => setMiktar(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kontrol Sonucu</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kontrol Kararı</label>
                   <select value={kontrolSonucu} onChange={(e) => setKontrolSonucu(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', backgroundColor: 'white' }}>
                     <option value="Kabul">Kabul</option>
                     <option value="Şartlı Kabul">Şartlı Kabul</option>
@@ -572,54 +557,67 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <button type="submit" style={{ width: '100%', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Kayıt Ekle</button>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kontrol Eden / Depo Sorumlusu</label>
+                  <input type="text" placeholder="Adınız Soyadınız" value={kontrolEden} onChange={(e) => setKontrolEden(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <button type="submit" style={{ width: '100%', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '11px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Malzemeyi Kabul Et & Kaydet</button>
                 </div>
               </form>
             </div>
 
             {/* Girdi Listesi Tablosu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Girdi Kontrol Kayıtları</h3>
+              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Gelen Malzeme Kabul Geçmişi</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '13px' }}>
                     <th style={{ padding: '10px' }}>ID</th>
-                    <th style={{ padding: '10px' }}>Malzeme Adı</th>
-                    <th style={{ padding: '10px' }}>Teknik Özellikler</th>
-                    <th style={{ padding: '10px' }}>Malzeme Türü</th>
-                    <th style={{ padding: '10px' }}>Tedarikçi Firma</th>
+                    <th style={{ padding: '10px' }}>Malzeme / Tedarikçi</th>
+                    <th style={{ padding: '10px' }}>İrsaliye / Lot No</th>
+                    <th style={{ padding: '10px' }}>Teknik Detay</th>
                     <th style={{ padding: '10px' }}>Miktar</th>
-                    <th style={{ padding: '10px' }}>Sonuç</th>
+                    <th style={{ padding: '10px' }}>Karar</th>
+                    <th style={{ padding: '10px' }}>Kabul Eden</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>İşlemler</th>
                   </tr>
                 </thead>
                 <tbody>
                   {girdiler.length > 0 ? (
                     girdiler.map((item) => (
-                      <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>
                         <td style={{ padding: '12px' }}>{item.id}</td>
-                        <td style={{ padding: '12px', fontWeight: '500' }}>{item.malzeme_adi}</td>
-                        <td style={{ padding: '12px' }}>{item.teknik_ozellikler}</td>
-                        <td style={{ padding: '12px' }}>{item.malzeme_turu}</td>
-                        <td style={{ padding: '12px' }}>{item.tedarikci_firma}</td>
-                        <td style={{ padding: '12px' }}>{item.miktar}</td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{item.malzeme_adi}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>{item.tedarikci_firma}</div>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: '500' }}>{item.irsaliye_no || '-'}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>Lot: {item.parti_no || '-'}</div>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div>{item.teknik_ozellikler || '-'}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>{item.malzeme_turu}</div>
+                        </td>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>{item.miktar}</td>
                         <td style={{ padding: '12px' }}>
                           <span style={{ 
-                            backgroundColor: item.kontrol_sonucu === 'Kabul' ? '#dcfce7' : '#fee2e2',
-                            color: item.kontrol_sonucu === 'Kabul' ? '#166534' : '#991b1b',
-                            padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600'
+                            backgroundColor: item.kontrol_sonucu === 'Kabul' ? '#dcfce7' : item.kontrol_sonucu === 'Şartlı Kabul' ? '#fef3c7' : '#fee2e2',
+                            color: item.kontrol_sonucu === 'Kabul' ? '#166534' : item.kontrol_sonucu === 'Şartlı Kabul' ? '#92400e' : '#991b1b',
+                            padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600'
                           }}>
                             {item.kontrol_sonucu}
                           </span>
                         </td>
+                        <td style={{ padding: '12px', color: '#475569' }}>{item.kontrol_eden || 'Depo'}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <button onClick={() => girdiSil(item.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}>Sil</button>
+                          <button onClick={() => girdiSil(item.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', fontSize: '11px' }}>Sil</button>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Henüz kayıtlı girdi kontrol verisi bulunmuyor.</td>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Henüz kayıtlı malzeme kabul verisi bulunmuyor.</td>
                     </tr>
                   )}
                 </tbody>
@@ -628,11 +626,11 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= 3. DOKÜMAN MASTER LİSTESİ ================= */}
+        {/* ================= 3. DOKÜMAN MASTER LİSTESİ (KYS) ================= */}
         {aktifSekme === 'dokuman_master' && (
           <div>
             <div style={{ marginBottom: '25px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Doküman Master Listesi</h1>
+              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Doküman Master Listesi (KYS)</h1>
               <p style={{ color: '#64748b', margin: 0 }}>Prosedürler, talimatlar ve formlar arşivi (Otomatik Revizyon Takipli)</p>
             </div>
 
@@ -735,13 +733,7 @@ export default function App() {
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                             {doc.dosya_url ? (
-                              <a 
-                                href={doc.dosya_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                style={{ backgroundColor: '#6b21a8', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}
-                                title="Tarayıcıda PDF Olarak Görüntüle"
-                              >
+                              <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#6b21a8', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }} title="Tarayıcıda PDF Olarak Görüntüle">
                                 👁️ Görüntüle
                               </a>
                             ) : (
@@ -749,14 +741,7 @@ export default function App() {
                             )}
 
                             {doc.orijinal_dosya_url ? (
-                              <a 
-                                href={doc.orijinal_dosya_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                download
-                                style={{ backgroundColor: '#16a34a', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}
-                                title="Orijinal Formatında İndir ve Düzenle"
-                              >
+                              <a href={doc.orijinal_dosya_url} target="_blank" rel="noopener noreferrer" download style={{ backgroundColor: '#16a34a', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }} title="Orijinal Formatında İndir ve Düzenle">
                                 📥 Düzenle ({doc.format || 'Dosya'})
                               </a>
                             ) : (
