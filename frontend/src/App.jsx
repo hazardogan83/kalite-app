@@ -21,6 +21,8 @@ export default function App() {
   const [kategori, setKategori] = useState('Talimat');
   const [format, setFormat] = useState('Word');
   const [revizyonNo, setRevizyonNo] = useState('00');
+  const [secilenDosya, setSecilenDosya] = useState(null);
+  const [yukleniyor, setYukleniyor] = useState(false);
 
   // Verileri Çekme
   const verileriGetir = async () => {
@@ -70,7 +72,7 @@ export default function App() {
     }
   };
 
-  // Yeni Doküman Ekleme
+  // Yeni Doküman ve Dosya Ekleme
   const yeniDokumanEkle = async (e) => {
     e.preventDefault();
     if (!dokumanKodu || !dokumanAdi) {
@@ -78,16 +80,54 @@ export default function App() {
       return;
     }
 
-    const { error } = await supabase.from('dokuman_master').insert([
-      { dokuman_kodu: dokumanKodu, dokuman_adi: dokumanAdi, kategori: kategori, format: format, revizyon_no: revizyonNo, yayin_tarihi: new Date().toISOString().split('T')[0] }
-    ]);
+    setYukleniyor(true);
+    let dosyaPublicUrl = null;
 
-    if (error) {
-      alert("Doküman ekleme hatası: " + error.message);
-    } else {
-      alert("Doküman başarıyla eklendi!");
-      setDokumanKodu(''); setDokumanAdi('');
+    try {
+      // 1. Eğer dosya seçildiyse Supabase Storage'a yükle
+      if (secilenDosya) {
+        const dosyaAdi = `${Date.now()}_${secilenDosya.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('dokumanlar')
+          .upload(dosyaAdi, secilenDosya);
+
+        if (uploadError) {
+          throw new Error("Dosya yükleme hatası: " + uploadError.message);
+        }
+
+        // 2. Yüklenen dosyanın indirme/görüntüleme linkini al
+        const { data: urlData } = supabase.storage
+          .from('dokumanlar')
+          .getPublicUrl(dosyaAdi);
+
+        dosyaPublicUrl = urlData.publicUrl;
+      }
+
+      // 3. Veritabanına kaydı ekle
+      const { error: dbError } = await supabase.from('dokuman_master').insert([
+        { 
+          dokuman_kodu: dokumanKodu, 
+          dokuman_adi: dokumanAdi, 
+          kategori: kategori, 
+          format: format, 
+          revizyon_no: revizyonNo, 
+          yayin_tarihi: new Date().toISOString().split('T')[0],
+          dosya_url: dosyaPublicUrl 
+        }
+      ]);
+
+      if (dbError) throw dbError;
+
+      alert("Doküman ve dosyası başarıyla eklendi!");
+      setDokumanKodu(''); 
+      setDokumanAdi(''); 
+      setSecilenDosya(null);
       verileriGetir();
+
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setYukleniyor(false);
     }
   };
 
@@ -268,7 +308,7 @@ export default function App() {
 
               {/* Yeni Doküman Ekleme Formu */}
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>➕ Yeni Doküman Tanımla</h3>
+                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>➕ Yeni Doküman ve Dosya Tanımla</h3>
                 <form onSubmit={yeniDokumanEkle} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <input type="text" placeholder="Doküman Kodu (Örn: TL-01)" value={dokumanKodu} onChange={(e) => setDokumanKodu(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                   <input type="text" placeholder="Doküman Adı" value={dokumanAdi} onChange={(e) => setDokumanAdi(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
@@ -283,7 +323,13 @@ export default function App() {
                     <option value="Excel">Excel (.xlsx)</option>
                     <option value="PowerPoint">PowerPoint (.pptx)</option>
                   </select>
-                  <button type="submit" style={{ gridColumn: 'span 2', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Ekle</button>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Bilgisayardan Dosya Seç (Word/Excel/PDF):</label>
+                    <input type="file" onChange={(e) => setSecilenDosya(e.target.files[0])} style={{ width: '100%', fontSize: '13px' }} />
+                  </div>
+                  <button type="submit" disabled={yukleniyor} style={{ gridColumn: 'span 2', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    {yukleniyor ? 'Yükleniyor...' : 'Dokümanı ve Dosyayı Kaydet'}
+                  </button>
                 </form>
               </div>
 
@@ -301,6 +347,7 @@ export default function App() {
                     <th style={{ padding: '10px' }}>Format</th>
                     <th style={{ padding: '10px' }}>Revizyon</th>
                     <th style={{ padding: '10px' }}>Yayın Tarihi</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Dosya</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>İşlemler</th>
                   </tr>
                 </thead>
@@ -327,13 +374,22 @@ export default function App() {
                         <td style={{ padding: '12px' }}>Rev.{doc.revizyon_no}</td>
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
+                          {doc.dosya_url ? (
+                            <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#10b981', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
+                              Aç / İndir
+                            </a>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontSize: '12px' }}>Dosya Yok</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button onClick={() => dokumanSil(doc.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}>Sil</button>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Aramanıza uygun doküman bulunamadı.</td>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Aramanıza uygun doküman bulunamadı.</td>
                     </tr>
                   )}
                 </tbody>
