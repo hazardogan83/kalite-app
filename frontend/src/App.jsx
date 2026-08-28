@@ -27,6 +27,19 @@ export default function App() {
   const [secilenOrijinalDosya, setSecilenOrijinalDosya] = useState(null);
   const [yukleniyor, setYukleniyor] = useState(false);
 
+  // Dosya adındaki Türkçe karakterleri ve boşlukları temizleyen yardımcı fonksiyon
+  const dosyaadiniTemizle = (isim) => {
+    return isim
+      .replace(/ç/g, "c").replace(/Ç/g, "C")
+      .replace(/ğ/g, "g").replace(/Ğ/g, "G")
+      .replace(/ı/g, "i").replace(/İ/g, "I")
+      .replace(/ö/g, "o").replace(/Ö/g, "O")
+      .replace(/ş/g, "s").replace(/Ş/g, "S")
+      .replace(/ü/g, "u").replace(/Ü/g, "U")
+      .replace(/\s+/g, "_")
+      .replace(/[^a-zA-Z0-9_.-]/g, "");
+  };
+
   // Verileri Çekme
   const verileriGetir = async () => {
     const { data: girdiData } = await supabase
@@ -88,9 +101,10 @@ export default function App() {
     let orijinalUrl = null;
 
     try {
-      // 1. PDF Dosyasını Yükle (Görüntüleme için)
+      // 1. PDF Dosyasını Yükle
       if (secilenPdfDosya) {
-        const pdfAdi = `pdf_${Date.now()}_${secilenPdfDosya.name}`;
+        const temizAd = dosyaadiniTemizle(secilenPdfDosya.name);
+        const pdfAdi = `pdf_${Date.now()}_${temizAd}`;
         const { error: pdfError } = await supabase.storage
           .from('dokumanlar')
           .upload(pdfAdi, secilenPdfDosya);
@@ -103,9 +117,10 @@ export default function App() {
         pdfUrl = pdfUrlData.publicUrl;
       }
 
-      // 2. Orijinal Dosyayı Yükle (Word/Excel Düzenleme için)
+      // 2. Orijinal Dosyayı Yükle
       if (secilenOrijinalDosya) {
-        const orijinalAdi = `orijinal_${Date.now()}_${secilenOrijinalDosya.name}`;
+        const temizAd = dosyaadiniTemizle(secilenOrijinalDosya.name);
+        const orijinalAdi = `orijinal_${Date.now()}_${temizAd}`;
         const { error: orijinalError } = await supabase.storage
           .from('dokumanlar')
           .upload(orijinalAdi, secilenOrijinalDosya);
@@ -127,8 +142,8 @@ export default function App() {
           format: format, 
           revizyon_no: revizyonNo, 
           yayin_tarihi: new Date().toISOString().split('T')[0],
-          dosya_url: pdfUrl,             // Görüntüleme için PDF URL'i
-          orijinal_dosya_url: orijinalUrl // Düzenleme için Word/Excel URL'i
+          dosya_url: pdfUrl,
+          orijinal_dosya_url: orijinalUrl
         }
       ]);
 
@@ -401,7 +416,7 @@ export default function App() {
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                            {/* Görüntüle Butonu (PDF - Sekmede açılır, indirmez) */}
+                            {/* Görüntüle Butonu (PDF) */}
                             {doc.dosya_url ? (
                               <a 
                                 href={doc.dosya_url} 
@@ -416,7 +431,7 @@ export default function App() {
                               <span style={{ color: '#94a3b8', fontSize: '11px' }}>PDF Yok</span>
                             )}
 
-                            {/* Düzenle / İndir Butonu (Orijinal Word/Excel) */}
+                            {/* Düzenle / İndir Butonu (Orijinal) */}
                             {doc.orijinal_dosya_url ? (
                               <a 
                                 href={doc.orijinal_dosya_url} 
