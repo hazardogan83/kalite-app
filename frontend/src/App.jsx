@@ -2,8 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function App() {
-  const [aktifSekme, setAktifSekme] = useState('girdi_kontrol');
-  
+  // Oturum State'i
+  const [oturumAcildi, setOturumAcildi] = useState(false);
+  const [girisEmail, setGirisEmail] = useState('hazar@minyaturmakina.com');
+  const [girisSifre, setGirisSifre] = useState('123456');
+
+  // Aktif Sekme / Menü State'leri
+  const [aktifSekme, setAktifSekme] = useState('dashboard');
+  const [acikMenu, setAcikMenu] = useState({ kalite: true, uretim: false, siparis: false, yonetim: false });
+
   // Girdi Kontrol State'leri
   const [girdiler, setGirdiler] = useState([]);
   const [malzemeAdi, setMalzemeAdi] = useState('');
@@ -55,8 +62,26 @@ export default function App() {
   };
 
   useEffect(() => {
-    verileriGetir();
-  }, []);
+    if (oturumAcildi) {
+      verileriGetir();
+    }
+  }, [oturumAcildi]);
+
+  // Giriş Yapma Fonksiyonu
+  const handleGiris = (e) => {
+    e.preventDefault();
+    if (girisEmail && girisSifre) {
+      setOturumAcildi(true);
+      setAktifSekme('dashboard');
+    } else {
+      alert("Lütfen e-posta ve şifre giriniz.");
+    }
+  };
+
+  // Akordeon menü açma/kapatma
+  const menuToggle = (menuAdi) => {
+    setAcikMenu(prev => ({ ...prev, [menuAdi]: !prev[menuAdi] }));
+  };
 
   // Girdi Ekleme
   const yeniGirdiEkle = async (e) => {
@@ -100,12 +125,10 @@ export default function App() {
     let orijinalUrl = null;
 
     try {
-      // 1. Aynı doküman kodundan daha önce var mı kontrol edelim (Revizyon mantığı için)
       const mevcutDokumanlar = dokumanlar.filter(d => d.dokuman_kodu.toLowerCase() === dokumanKodu.toLowerCase());
       let yeniRevizyonNo = "00";
 
       if (mevcutDokumanlar.length > 0) {
-        // En yüksek revizyon numarasını bul ve 1 artır (Örn: "00" -> "01", "01" -> "02")
         const enYuksekRev = mevcutDokumanlar.reduce((max, doc) => {
           return parseInt(doc.revizyon_no || "0") > parseInt(max || "0") ? doc.revizyon_no : max;
         }, "00");
@@ -113,7 +136,6 @@ export default function App() {
         yeniRevizyonNo = String(parseInt(enYuksekRev) + 1).padStart(2, '0');
       }
 
-      // 2. PDF Dosyasını Yükle
       if (secilenPdfDosya) {
         const temizAd = dosyaadiniTemizle(secilenPdfDosya.name);
         const pdfAdi = `pdf_${Date.now()}_${temizAd}`;
@@ -129,7 +151,6 @@ export default function App() {
         pdfUrl = pdfUrlData.publicUrl;
       }
 
-      // 3. Orijinal Dosyayı Yükle
       if (secilenOrijinalDosya) {
         const temizAd = dosyaadiniTemizle(secilenOrijinalDosya.name);
         const orijinalAdi = `orijinal_${Date.now()}_${temizAd}`;
@@ -145,7 +166,6 @@ export default function App() {
         orijinalUrl = orijinalUrlData.publicUrl;
       }
 
-      // 4. Veritabanına Yeni Revizyon Olarak Kaydet
       const { error: dbError } = await supabase.from('dokuman_master').insert([
         { 
           dokuman_kodu: dokumanKodu.toUpperCase(), 
@@ -191,53 +211,332 @@ export default function App() {
     (doc.format && doc.format.toLowerCase().includes(aramaMetni.toLowerCase()))
   );
 
+  // 1. EĞER OTURUM AÇILMADIYSA GİRİŞ EKRANI
+  if (!oturumAcildi) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        height: '100vh', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: '#0f172a', 
+        fontFamily: 'sans-serif' 
+      }}>
+        <div style={{ 
+          backgroundColor: 'white', 
+          padding: '40px', 
+          borderRadius: '12px', 
+          width: '100%', 
+          maxWidth: '420px',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b', letterSpacing: '-0.5px' }}>
+              MİNYATÜR <span style={{ color: '#2563eb' }}>MAKİNA</span>
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginTop: '5px' }}>
+              Robot Sistemleri ve Otomasyon ERP / KYS
+            </div>
+          </div>
+
+          <form onSubmit={handleGiris} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kullanıcı E-posta</label>
+              <input 
+                type="email" 
+                value={girisEmail} 
+                onChange={(e) => setGirisEmail(e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                required 
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Şifre</label>
+              <input 
+                type="password" 
+                value={girisSifre} 
+                onChange={(e) => setGirisSifre(e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                required 
+              />
+            </div>
+            <button 
+              type="submit" 
+              style={{ 
+                backgroundColor: '#2563eb', 
+                color: 'white', 
+                border: 'none', 
+                padding: '12px', 
+                borderRadius: '6px', 
+                fontWeight: 'bold', 
+                cursor: 'pointer',
+                marginTop: '10px',
+                fontSize: '14px'
+              }}
+            >
+              Güvenli Giriş Yap
+            </button>
+          </form>
+          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '11px', color: '#94a3b8' }}>
+            Bursa / Osmangazi Fabrika Otomasyon Yönetim Sistemi
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. OTURUM AÇILDIKTAN SONRA ANA ERP PANELİ
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f4f6f9', margin: 0 }}>
       
-      {/* Sol Menü */}
-      <div style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px' }}>
+      {/* SOL MENÜ (KADEMELİ / AKORDEON YAPIDA) */}
+      <div style={{ width: '280px', backgroundColor: '#0f172a', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', overflowY: 'auto' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-            <span style={{ backgroundColor: '#2563eb', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', marginRight: '10px' }}>KYS</span>
-            <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Kalite ERP</span>
+          {/* Logo / Başlık */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', borderBottom: '1px solid #1e293b', paddingBottom: '15px' }}>
+            <div style={{ backgroundColor: '#2563eb', color: 'white', padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '14px' }}>MM</div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 'bold', letterSpacing: '0.5px' }}>MİNYATÜR MAKİNA</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>ERP & Kalite Yönetimi</div>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            
+            {/* Dashboard / Ana Sayfa Butonu */}
             <button 
-              onClick={() => setAktifSekme('girdi_kontrol')}
+              onClick={() => setAktifSekme('dashboard')}
               style={{
-                background: aktifSekme === 'girdi_kontrol' ? '#2563eb' : 'transparent',
-                color: 'white', border: 'none', padding: '12px 15px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'
+                background: aktifSekme === 'dashboard' ? '#2563eb' : 'transparent',
+                color: 'white', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px'
               }}
             >
-              📊 Girdi Kontrol Listesi
+              🏠 Ana Sayfa / Kurumsal
             </button>
 
-            <button 
-              onClick={() => setAktifSekme('dokuman_master')}
-              style={{
-                background: aktifSekme === 'dokuman_master' ? '#2563eb' : 'transparent',
-                color: 'white', border: 'none', padding: '12px 15px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'
-              }}
-            >
-              📁 Doküman Master Listesi
-            </button>
+            {/* 1. KALİTE BÖLÜMÜ */}
+            <div>
+              <button 
+                onClick={() => menuToggle('kalite')}
+                style={{
+                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>🛡️ Kalite Yönetimi</span>
+                <span style={{ fontSize: '12px' }}>{acikMenu.kalite ? '▼' : '▶'}</span>
+              </button>
+
+              {acikMenu.kalite && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
+                  <button 
+                    onClick={() => setAktifSekme('girdi_kontrol')}
+                    style={{
+                      background: aktifSekme === 'girdi_kontrol' ? '#1e3a8a' : 'transparent',
+                      color: aktifSekme === 'girdi_kontrol' ? 'white' : '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
+                    }}
+                  >
+                    • Girdi Kontrol Listesi
+                  </button>
+                  <button 
+                    onClick={() => setAktifSekme('dokuman_master')}
+                    style={{
+                      background: aktifSekme === 'dokuman_master' ? '#1e3a8a' : 'transparent',
+                      color: aktifSekme === 'dokuman_master' ? 'white' : '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
+                    }}
+                  >
+                    • Doküman Master Listesi
+                  </button>
+                  <button 
+                    onClick={() => alert("Bu modül yakında eklenecektir.")}
+                    style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                  >
+                    • Ölçü Kontrol & Kalibrasyon
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 2. ÜRETİM BÖLÜMÜ */}
+            <div>
+              <button 
+                onClick={() => menuToggle('uretim')}
+                style={{
+                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>⚙️ Üretim & Talaşlı İmalat</span>
+                <span style={{ fontSize: '12px' }}>{acikMenu.uretim ? '▼' : '▶'}</span>
+              </button>
+
+              {acikMenu.uretim && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
+                  <button onClick={() => alert("Özel Makina İmalat Takibi modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    • Özel Makina Projeleri
+                  </button>
+                  <button onClick={() => alert("Fikstür ve Aparat Takip modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    • Fikstür / Aparat Takibi
+                  </button>
+                  <button onClick={() => alert("CNC Operasyon Takip modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    • CNC Operasyon & İş Emri
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 3. SİPARİŞ BÖLÜMÜ */}
+            <div>
+              <button 
+                onClick={() => menuToggle('siparis')}
+                style={{
+                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>📦 Sipariş & Sevkiyat</span>
+                <span style={{ fontSize: '12px' }}>{acikMenu.siparis ? '▼' : '▶'}</span>
+              </button>
+
+              {acikMenu.siparis && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
+                  <button onClick={() => alert("Müşteri Siparişleri modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    • Müşteri Sipariş Listesi
+                  </button>
+                  <button onClick={() => alert("Sevk İrsaliyesi modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    • Sevkiyat & İrsaliye
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 4. YÖNETİM BÖLÜMÜ */}
+            <div>
+              <button 
+                onClick={() => menuToggle('yonetim')}
+                style={{
+                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <span>📊 Yönetim & Raporlar</span>
+                <span style={{ fontSize: '12px' }}>{acikMenu.yonetim ? '▼' : '▶'}</span>
+              </button>
+
+              {acikMenu.yonetim && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
+                  <button onClick={() => alert("Performans Raporları hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    • KPI ve Raporlar
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid #1e293b', paddingTop: '15px', fontSize: '14px', color: '#94a3b8' }}>
-          Kullanıcı: hazar@kalite.com
+        {/* Alt Kullanıcı Bilgisi ve Çıkış */}
+        <div style={{ borderTop: '1px solid #1e293b', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: '500' }}>Hazar</div>
+            <div style={{ fontSize: '11px', color: '#94a3b8' }}>hazar@minyatur.com</div>
+          </div>
+          <button 
+            onClick={() => setOturumAcildi(false)}
+            style={{ background: '#334155', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
+            title="Oturumu Kapat"
+          >
+            Çıkış
+          </button>
         </div>
       </div>
 
-      {/* Ana İçerik Alanı */}
+      {/* ANA İÇERİK ALANI */}
       <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
         
-        {aktifSekme === 'girdi_kontrol' ? (
+        {/* ================= 1. DASHBOARD / KARŞILAMA EKRANI ================= */}
+        {aktifSekme === 'dashboard' && (
+          <div>
+            {/* Üst Karşılama Banner */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)', 
+              color: 'white', 
+              padding: '40px', 
+              borderRadius: '12px', 
+              marginBottom: '30px',
+              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+                <div>
+                  <span style={{ backgroundColor: '#2563eb', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+                    Kurumsal ERP & KYS Portalı
+                  </span>
+                  <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '15px 0 10px 0' }}>Minyatür Makina Robot Sistemleri</h1>
+                  <p style={{ color: '#cbd5e1', fontSize: '15px', maxWidth: '650px', lineHeight: '1.5', margin: 0 }}>
+                    Özel makina imalatı, robotik otomasyon hücreleri, fikstür-aparat sistemleri ve yüksek hassasiyetli talaşlı imalat çözümleriyle kalite standartlarını bir üst seviyeye taşıyoruz.
+                  </p>
+                </div>
+                <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '20px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Aktif Modül</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>ISO 9001 / KYS</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Faaliyet Alanları Kartları */}
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px' }}>🏭 Faaliyet Alanlarımız & Uzmanlıklar</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+              
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #2563eb' }}>
+                <div style={{ fontSize: '28px', marginBottom: '10px' }}>🤖</div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Özel Makine İmalatı</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Endüstriyel otomasyon hatları, özel amaçlı makineler ve robotik hücre entegrasyonları.</p>
+              </div>
+
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #16a34a' }}>
+                <div style={{ fontSize: '28px', marginBottom: '10px' }}>⚙️</div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Hassas Talaşlı İmalat</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Alüminyum ve çelik parçaların CNC tezgahlarda yüksek hassasiyetle işlenmesi.</p>
+              </div>
+
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #d97706' }}>
+                <div style={{ fontSize: '28px', marginBottom: '10px' }}>📐</div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Fikstür & Aparat Tasarımı</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Kaynak, montaj ve kalite kontrol fikstürlerinin özel tasarımı ve imalatı.</p>
+              </div>
+
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #9333ea' }}>
+                <div style={{ fontSize: '28px', marginBottom: '10px' }}>⚡</div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>EV & Batarya Çözümleri</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Elektrikli araç batarya taşıyıcıları ve tren yolcu bagaj seperatör sistemleri üretimi.</p>
+              </div>
+
+            </div>
+
+            {/* Hızlı Erişim / Özet Widget Alanı */}
+            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>🚀 Hızlı Sistem Özeti</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>Kayıtlı Doküman Sayısı</div>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2563eb', marginTop: '5px' }}>{dokumanlar.length} Adet</div>
+                </div>
+                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>Girdi Kontrol Kayıtları</div>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a', marginTop: '5px' }}>{girdiler.length} Adet</div>
+                </div>
+                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>Sistem Durumu</div>
+                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#16a34a', marginTop: '8px' }}>🟢 Aktif & Senkronize</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ================= 2. GİRDİ KONTROL LİSTESİ ================= */}
+        {aktifSekme === 'girdi_kontrol' && (
           <div>
             <div style={{ marginBottom: '25px' }}>
               <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Girdi Kontrol ve Malzeme Kabul</h1>
-              <p style={{ color: '#64748b', margin: 0 }}>Gelen malzeme kayıtları ve kontrol sonuçları</p>
+              <p style={{ color: '#64748b', margin: 0 }}>Gelen hammadde, parça kayıtları ve kalite kontrol sonuçları</p>
             </div>
 
             {/* Yeni Girdi Formu */}
@@ -246,23 +545,23 @@ export default function App() {
               <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '15px', alignItems: 'end' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Adı</label>
-                  <input type="text" placeholder="Örn: Cıvata" value={malzemeAdi} onChange={(e) => setMalzemeAdi(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="Örn: Alüminyum Profil" value={malzemeAdi} onChange={(e) => setMalzemeAdi(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Teknik Özellikler</label>
-                  <input type="text" placeholder="Örn: M5x20" value={teknikOzellikler} onChange={(e) => setTeknikOzellikler(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="Örn: 6063 T5" value={teknikOzellikler} onChange={(e) => setTeknikOzellikler(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Türü</label>
-                  <input type="text" placeholder="Örn: Bağlantı" value={malzemeTuru} onChange={(e) => setMalzemeTuru(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="Örn: Hammadde" value={malzemeTuru} onChange={(e) => setMalzemeTuru(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Tedarikçi Firma</label>
-                  <input type="text" placeholder="Örn: Kartal Cıvata" value={tedarikciFirma} onChange={(e) => setTedarikciFirma(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="Örn: Alüminyum A.Ş." value={tedarikciFirma} onChange={(e) => setTedarikciFirma(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Miktar</label>
-                  <input type="number" placeholder="Örn: 100" value={miktar} onChange={(e) => setMiktar(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                  <input type="number" placeholder="Örn: 250" value={miktar} onChange={(e) => setMiktar(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kontrol Sonucu</label>
@@ -327,7 +626,10 @@ export default function App() {
               </table>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* ================= 3. DOKÜMAN MASTER LİSTESİ ================= */}
+        {aktifSekme === 'dokuman_master' && (
           <div>
             <div style={{ marginBottom: '25px' }}>
               <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Doküman Master Listesi</h1>
@@ -432,7 +734,6 @@ export default function App() {
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                            {/* Görüntüle Butonu (PDF) */}
                             {doc.dosya_url ? (
                               <a 
                                 href={doc.dosya_url} 
@@ -447,7 +748,6 @@ export default function App() {
                               <span style={{ color: '#94a3b8', fontSize: '11px' }}>PDF Yok</span>
                             )}
 
-                            {/* Düzenle / İndir Butonu (Orijinal) */}
                             {doc.orijinal_dosya_url ? (
                               <a 
                                 href={doc.orijinal_dosya_url} 
