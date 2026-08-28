@@ -219,7 +219,7 @@ export default function App() {
         height: '100vh', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        backgroundColor: '#0f172a', 
+        backgroundColor: '#1e1b4b', 
         fontFamily: 'sans-serif' 
       }}>
         <div style={{ 
@@ -231,8 +231,8 @@ export default function App() {
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b', letterSpacing: '-0.5px' }}>
-              MİNYATÜR <span style={{ color: '#2563eb' }}>MAKİNA</span>
+            <div style={{ fontSize: '24px', fontWeight: '800', color: '#2e1065', letterSpacing: '-0.5px' }}>
+              MİNYATÜR <span style={{ color: '#581c87' }}>MAKİNA</span>
             </div>
             <div style={{ fontSize: '13px', color: '#64748b', marginTop: '5px' }}>
               Robot Sistemleri ve Otomasyon ERP / KYS
@@ -263,7 +263,7 @@ export default function App() {
             <button 
               type="submit" 
               style={{ 
-                backgroundColor: '#2563eb', 
+                backgroundColor: '#581c87', 
                 color: 'white', 
                 border: 'none', 
                 padding: '12px', 
@@ -290,14 +290,14 @@ export default function App() {
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f4f6f9', margin: 0 }}>
       
       {/* SOL MENÜ (KADEMELİ / AKORDEON YAPIDA) */}
-      <div style={{ width: '280px', backgroundColor: '#0f172a', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', overflowY: 'auto' }}>
+      <div style={{ width: '280px', backgroundColor: '#1e1b4b', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', overflowY: 'auto' }}>
         <div>
           {/* Logo / Başlık */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', borderBottom: '1px solid #1e293b', paddingBottom: '15px' }}>
-            <div style={{ backgroundColor: '#2563eb', color: 'white', padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '14px' }}>MM</div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', borderBottom: '1px solid #312e81', paddingBottom: '15px' }}>
+            <div style={{ backgroundColor: '#581c87', color: 'white', padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '14px' }}>MM</div>
             <div>
               <div style={{ fontSize: '15px', fontWeight: 'bold', letterSpacing: '0.5px' }}>MİNYATÜR MAKİNA</div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>ERP & Kalite Yönetimi</div>
+              <div style={{ fontSize: '11px', color: '#c084fc' }}>ERP & Kalite Yönetimi</div>
             </div>
           </div>
 
@@ -307,7 +307,7 @@ export default function App() {
             <button 
               onClick={() => setAktifSekme('dashboard')}
               style={{
-                background: aktifSekme === 'dashboard' ? '#2563eb' : 'transparent',
+                background: aktifSekme === 'dashboard' ? '#581c87' : 'transparent',
                 color: 'white', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px'
               }}
             >
@@ -331,8 +331,8 @@ export default function App() {
                   <button 
                     onClick={() => setAktifSekme('girdi_kontrol')}
                     style={{
-                      background: aktifSekme === 'girdi_kontrol' ? '#1e3a8a' : 'transparent',
-                      color: aktifSekme === 'girdi_kontrol' ? 'white' : '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
+                      background: aktifSekme === 'girdi_kontrol' ? '#3b0764' : 'transparent',
+                      color: aktifSekme === 'girdi_kontrol' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
                     }}
                   >
                     • Girdi Kontrol Listesi
@@ -340,8 +340,8 @@ export default function App() {
                   <button 
                     onClick={() => setAktifSekme('dokuman_master')}
                     style={{
-                      background: aktifSekme === 'dokuman_master' ? '#1e3a8a' : 'transparent',
-                      color: aktifSekme === 'dokuman_master' ? 'white' : '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
+                      background: aktifSekme === 'dokuman_master' ? '#3b0764' : 'transparent',
+                      color: aktifSekme === 'dokuman_master' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
                     }}
                   >
                     • Doküman Master Listesi
@@ -432,14 +432,14 @@ export default function App() {
         </div>
 
         {/* Alt Kullanıcı Bilgisi ve Çıkış */}
-        <div style={{ borderTop: '1px solid #1e293b', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ borderTop: '1px solid #312e81', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '13px', fontWeight: '500' }}>Hazar</div>
-            <div style={{ fontSize: '11px', color: '#94a3b8' }}>hazar@minyatur.com</div>
+            <div style={{ fontSize: '11px', color: '#c084fc' }}>hazar@minyatur.com</div>
           </div>
           <button 
             onClick={() => setOturumAcildi(false)}
-            style={{ background: '#334155', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
+            style={{ background: '#312e81', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
             title="Oturumu Kapat"
           >
             Çıkış
@@ -453,9 +453,9 @@ export default function App() {
         {/* ================= 1. DASHBOARD / KARŞILAMA EKRANI ================= */}
         {aktifSekme === 'dashboard' && (
           <div>
-            {/* Üst Karşılama Banner */}
+            {/* Üst Karşılama Banner (Logonun mor/lacivert tonları entegre edildi) */}
             <div style={{ 
-              background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)', 
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', 
               color: 'white', 
               padding: '40px', 
               borderRadius: '12px', 
@@ -464,16 +464,16 @@ export default function App() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                 <div>
-                  <span style={{ backgroundColor: '#2563eb', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+                  <span style={{ backgroundColor: '#581c87', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                     Kurumsal ERP & KYS Portalı
                   </span>
                   <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '15px 0 10px 0' }}>Minyatür Makina Robot Sistemleri</h1>
-                  <p style={{ color: '#cbd5e1', fontSize: '15px', maxWidth: '650px', lineHeight: '1.5', margin: 0 }}>
+                  <p style={{ color: '#e9d5ff', fontSize: '15px', maxWidth: '650px', lineHeight: '1.5', margin: 0 }}>
                     Özel makina imalatı, robotik otomasyon hücreleri, fikstür-aparat sistemleri ve yüksek hassasiyetli talaşlı imalat çözümleriyle kalite standartlarını bir üst seviyeye taşıyoruz.
                   </p>
                 </div>
                 <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '20px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Aktif Modül</div>
+                  <div style={{ fontSize: '12px', color: '#c084fc' }}>Aktif Modül</div>
                   <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>ISO 9001 / KYS</div>
                 </div>
               </div>
@@ -483,7 +483,7 @@ export default function App() {
             <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px' }}>🏭 Faaliyet Alanlarımız & Uzmanlıklar</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '30px' }}>
               
-              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #2563eb' }}>
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #581c87' }}>
                 <div style={{ fontSize: '28px', marginBottom: '10px' }}>🤖</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Özel Makine İmalatı</h3>
                 <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Endüstriyel otomasyon hatları, özel amaçlı makineler ve robotik hücre entegrasyonları.</p>
@@ -515,7 +515,7 @@ export default function App() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                 <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>Kayıtlı Doküman Sayısı</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2563eb', marginTop: '5px' }}>{dokumanlar.length} Adet</div>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#581c87', marginTop: '5px' }}>{dokumanlar.length} Adet</div>
                 </div>
                 <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>Girdi Kontrol Kayıtları</div>
@@ -572,7 +572,7 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <button type="submit" style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Kayıt Ekle</button>
+                  <button type="submit" style={{ width: '100%', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Kayıt Ekle</button>
                 </div>
               </form>
             </div>
@@ -672,7 +672,7 @@ export default function App() {
                   
                   {/* PDF Görüntüleme Dosyası */}
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#0369a1', marginBottom: '2px' }}>📖 Görüntüleme İçin PDF Dosyası:</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#581c87', marginBottom: '2px' }}>📖 Görüntüleme İçin PDF Dosyası:</label>
                     <input type="file" accept=".pdf" onChange={(e) => setSecilenPdfDosya(e.target.files[0])} style={{ width: '100%', fontSize: '12px' }} />
                   </div>
 
@@ -682,7 +682,7 @@ export default function App() {
                     <input type="file" onChange={(e) => setSecilenOrijinalDosya(e.target.files[0])} style={{ width: '100%', fontSize: '12px' }} />
                   </div>
 
-                  <button type="submit" disabled={yukleniyor} style={{ gridColumn: 'span 2', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  <button type="submit" disabled={yukleniyor} style={{ gridColumn: 'span 2', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
                     {yukleniyor ? 'Yükleniyor...' : 'Kaydet ve Revizyonu Yönet'}
                   </button>
                 </form>
@@ -710,17 +710,17 @@ export default function App() {
                   {filtrelenmisDokumanlar.length > 0 ? (
                     filtrelenmisDokumanlar.map((doc) => (
                       <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#2563eb' }}>{doc.dokuman_kodu}</td>
+                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#581c87' }}>{doc.dokuman_kodu}</td>
                         <td style={{ padding: '12px', fontWeight: '500' }}>{doc.dokuman_adi}</td>
                         <td style={{ padding: '12px' }}>
-                          <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                          <span style={{ backgroundColor: '#f3e8ff', color: '#581c87', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
                             {doc.kategori}
                           </span>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <span style={{ 
-                            backgroundColor: doc.format === 'Excel' ? '#dcfce7' : doc.format === 'PowerPoint' ? '#ffedd5' : '#e0e7ff',
-                            color: doc.format === 'Excel' ? '#166534' : doc.format === 'PowerPoint' ? '#9a3412' : '#3730a3',
+                            backgroundColor: doc.format === 'Excel' ? '#dcfce7' : doc.format === 'PowerPoint' ? '#ffedd5' : '#f3e8ff',
+                            color: doc.format === 'Excel' ? '#166534' : doc.format === 'PowerPoint' ? '#9a3412' : '#581c87',
                             padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600'
                           }}>
                             {doc.format || 'Word'}
@@ -739,7 +739,7 @@ export default function App() {
                                 href={doc.dosya_url} 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
-                                style={{ backgroundColor: '#0284c7', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}
+                                style={{ backgroundColor: '#6b21a8', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}
                                 title="Tarayıcıda PDF Olarak Görüntüle"
                               >
                                 👁️ Görüntüle
