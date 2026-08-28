@@ -21,7 +21,10 @@ export default function App() {
   const [kategori, setKategori] = useState('Talimat');
   const [format, setFormat] = useState('Word');
   const [revizyonNo, setRevizyonNo] = useState('00');
-  const [secilenDosya, setSecilenDosya] = useState(null);
+  
+  // Dosyalar için ayrı state'ler
+  const [secilenPdfDosya, setSecilenPdfDosya] = useState(null);
+  const [secilenOrijinalDosya, setSecilenOrijinalDosya] = useState(null);
   const [yukleniyor, setYukleniyor] = useState(false);
 
   // Verileri Çekme
@@ -72,7 +75,7 @@ export default function App() {
     }
   };
 
-  // Yeni Doküman ve Dosya Ekleme
+  // Yeni Doküman ve Çift Dosya Ekleme
   const yeniDokumanEkle = async (e) => {
     e.preventDefault();
     if (!dokumanKodu || !dokumanAdi) {
@@ -81,26 +84,41 @@ export default function App() {
     }
 
     setYukleniyor(true);
-    let dosyaPublicUrl = null;
+    let pdfUrl = null;
+    let orijinalUrl = null;
 
     try {
-      if (secilenDosya) {
-        const dosyaAdi = `${Date.now()}_${secilenDosya.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+      // 1. PDF Dosyasını Yükle (Görüntüleme için)
+      if (secilenPdfDosya) {
+        const pdfAdi = `pdf_${Date.now()}_${secilenPdfDosya.name}`;
+        const { error: pdfError } = await supabase.storage
           .from('dokumanlar')
-          .upload(dosyaAdi, secilenDosya);
+          .upload(pdfAdi, secilenPdfDosya);
 
-        if (uploadError) {
-          throw new Error("Dosya yükleme hatası: " + uploadError.message);
-        }
+        if (pdfError) throw new Error("PDF yükleme hatası: " + pdfError.message);
 
-        const { data: urlData } = supabase.storage
+        const { data: pdfUrlData } = supabase.storage
           .from('dokumanlar')
-          .getPublicUrl(dosyaAdi);
-
-        dosyaPublicUrl = urlData.publicUrl;
+          .getPublicUrl(pdfAdi);
+        pdfUrl = pdfUrlData.publicUrl;
       }
 
+      // 2. Orijinal Dosyayı Yükle (Word/Excel Düzenleme için)
+      if (secilenOrijinalDosya) {
+        const orijinalAdi = `orijinal_${Date.now()}_${secilenOrijinalDosya.name}`;
+        const { error: orijinalError } = await supabase.storage
+          .from('dokumanlar')
+          .upload(orijinalAdi, secilenOrijinalDosya);
+
+        if (orijinalError) throw new Error("Orijinal dosya yükleme hatası: " + orijinalError.message);
+
+        const { data: orijinalUrlData } = supabase.storage
+          .from('dokumanlar')
+          .getPublicUrl(orijinalAdi);
+        orijinalUrl = orijinalUrlData.publicUrl;
+      }
+
+      // 3. Veritabanına Kaydet
       const { error: dbError } = await supabase.from('dokuman_master').insert([
         { 
           dokuman_kodu: dokumanKodu, 
@@ -109,16 +127,18 @@ export default function App() {
           format: format, 
           revizyon_no: revizyonNo, 
           yayin_tarihi: new Date().toISOString().split('T')[0],
-          dosya_url: dosyaPublicUrl 
+          dosya_url: pdfUrl,             // Görüntüleme için PDF URL'i
+          orijinal_dosya_url: orijinalUrl // Düzenleme için Word/Excel URL'i
         }
       ]);
 
       if (dbError) throw dbError;
 
-      alert("Doküman ve dosyası başarıyla eklendi!");
+      alert("Doküman ve dosyaları başarıyla eklendi!");
       setDokumanKodu(''); 
       setDokumanAdi(''); 
-      setSecilenDosya(null);
+      setSecilenPdfDosya(null);
+      setSecilenOrijinalDosya(null);
       verileriGetir();
 
     } catch (err) {
@@ -320,12 +340,21 @@ export default function App() {
                     <option value="Excel">Excel (.xlsx)</option>
                     <option value="PowerPoint">PowerPoint (.pptx)</option>
                   </select>
+                  
+                  {/* PDF Görüntüleme Dosyası */}
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Bilgisayardan Dosya Seç (Önerilen: PDF):</label>
-                    <input type="file" onChange={(e) => setSecilenDosya(e.target.files[0])} style={{ width: '100%', fontSize: '13px' }} />
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#0369a1', marginBottom: '2px' }}>📖 Görüntüleme İçin PDF Dosyası:</label>
+                    <input type="file" accept=".pdf" onChange={(e) => setSecilenPdfDosya(e.target.files[0])} style={{ width: '100%', fontSize: '12px' }} />
                   </div>
+
+                  {/* Orijinal Düzenleme Dosyası */}
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#166534', marginBottom: '2px' }}>✏️ Düzenleme İçin Orijinal Dosya (Word/Excel):</label>
+                    <input type="file" onChange={(e) => setSecilenOrijinalDosya(e.target.files[0])} style={{ width: '100%', fontSize: '12px' }} />
+                  </div>
+
                   <button type="submit" disabled={yukleniyor} style={{ gridColumn: 'span 2', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    {yukleniyor ? 'Yükleniyor...' : 'Dokümanı ve Dosyayı Kaydet'}
+                    {yukleniyor ? 'Yükleniyor...' : 'Dokümanı ve Dosyaları Kaydet'}
                   </button>
                 </form>
               </div>
@@ -344,8 +373,8 @@ export default function App() {
                     <th style={{ padding: '10px' }}>Format</th>
                     <th style={{ padding: '10px' }}>Revizyon</th>
                     <th style={{ padding: '10px' }}>Yayın Tarihi</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>Dosya</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>İşlemler</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Dosya İşlemleri</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Sil</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -371,21 +400,41 @@ export default function App() {
                         <td style={{ padding: '12px' }}>Rev.{doc.revizyon_no}</td>
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
-                          {doc.dosya_url ? (
-                            <a 
-                              href={`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(doc.dosya_url)}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              style={{ backgroundColor: '#0284c7', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}
-                            >
-                              Tarayıcıda Aç
-                            </a>
-                          ) : (
-                            <span style={{ color: '#94a3b8', fontSize: '12px' }}>Dosya Yok</span>
-                          )}
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            {/* Görüntüle Butonu (PDF - Sekmede açılır, indirmez) */}
+                            {doc.dosya_url ? (
+                              <a 
+                                href={doc.dosya_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                style={{ backgroundColor: '#0284c7', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}
+                                title="Tarayıcıda PDF Olarak Görüntüle"
+                              >
+                                👁️ Görüntüle
+                              </a>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: '11px' }}>PDF Yok</span>
+                            )}
+
+                            {/* Düzenle / İndir Butonu (Orijinal Word/Excel) */}
+                            {doc.orijinal_dosya_url ? (
+                              <a 
+                                href={doc.orijinal_dosya_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                download
+                                style={{ backgroundColor: '#16a34a', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}
+                                title="Orijinal Formatında İndir ve Düzenle"
+                              >
+                                📥 Düzenle ({doc.format || 'Dosya'})
+                              </a>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: '11px' }}>Orijinal Yok</span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <button onClick={() => dokumanSil(doc.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}>Sil</button>
+                          <button onClick={() => dokumanSil(doc.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', fontSize: '11px' }}>Sil</button>
                         </td>
                       </tr>
                     ))
