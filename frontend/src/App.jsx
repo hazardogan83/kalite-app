@@ -32,7 +32,7 @@ export default function App() {
   const [aramaMetni, setAramaMetni] = useState('');
   const [dokumanKodu, setDokumanKodu] = useState('');
   const [dokumanAdi, setDokumanAdi] = useState('');
-  const [kategori, setKategori] = useState('Talimat');
+  const [kategori, setKategori] = useState('Prosedür');
   const [format, setFormat] = useState('Word');
   const [yerelDosyaYolu, setYerelDosyaYolu] = useState('');
 
@@ -148,6 +148,14 @@ export default function App() {
     }
   };
 
+  const yoluPanoyaKopyala = (yol) => {
+    navigator.clipboard.writeText(yol).then(() => {
+      alert("📋 Dosya yolu panoya kopyalandı!\n\nDosyayı açmak için:\n1. Klavyeden 'Win + R' tuşlarına basın.\n2. Açılan pencereye 'Ctrl + V' yapıp Enter'a basın.");
+    }).catch(err => {
+      alert("Kopyalama başarısız: " + err);
+    });
+  };
+
   const filtrelenmisDokumanlar = dokumanlar.filter(doc => 
     doc.dokuman_adi.toLowerCase().includes(aramaMetni.toLowerCase()) ||
     doc.dokuman_kodu.toLowerCase().includes(aramaMetni.toLowerCase()) ||
@@ -189,7 +197,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f4f6f9', margin: 0 }}>
       
-      {/* SOL MENÜ (KAPSAMLI 771 SATIRLIK KURUMSAL YAPI) */}
+      {/* SOL MENÜ */}
       <div style={{ width: '280px', backgroundColor: '#1e1b4b', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', overflowY: 'auto' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', borderBottom: '1px solid #312e81', paddingBottom: '15px' }}>
@@ -208,7 +216,6 @@ export default function App() {
               🏠 Ana Sayfa / Kurumsal
             </button>
 
-            {/* Kalite Yönetimi (KYS) */}
             <div>
               <button 
                 onClick={() => menuToggle('kalite')}
@@ -226,11 +233,15 @@ export default function App() {
                   >
                     • Doküman Master Listesi
                   </button>
+                  <button 
+                    style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                  >
+                    • Ölçü Kontrol & Kalibrasyon
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Depo & Malzeme Kabul */}
             <div>
               <button 
                 onClick={() => menuToggle('depo')}
@@ -252,7 +263,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Üretim & Talaşlı İmalat */}
             <div>
               <button 
                 onClick={() => menuToggle('uretim')}
@@ -263,7 +273,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Sipariş & Sevkiyat */}
             <div>
               <button 
                 onClick={() => menuToggle('siparis')}
@@ -274,7 +283,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Yönetim & Raporlar */}
             <div>
               <button 
                 onClick={() => menuToggle('yonetim')}
@@ -299,14 +307,14 @@ export default function App() {
         </div>
       </div>
 
-      {/* ANA İÇERİK ALANI */}
+      {/* ANA İÇERİK */}
       <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
         
         {aktifSekme === 'dashboard' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', color: 'white', padding: '40px', borderRadius: '12px', marginBottom: '30px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
               <div>
-                <div style={{ background: 'rgba(255,255,255,0.15)', display: 'inline-block', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', marginBottom: '12px', letterSpacing: '0.5px' }}>KURUMSAL ERP & KYS PORTALI</div>
+                <div style={{ background: 'rgba(255,255,255,0.15)', display: 'inline-block', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', marginBottom: '12px' }}>KURUMSAL ERP & KYS PORTALI</div>
                 <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 10px 0' }}>Minyatür Makina Robot Sistemleri</h1>
                 <p style={{ color: '#e9d5ff', fontSize: '15px', margin: 0, maxWidth: '700px' }}>Özel makina imalatı, robotik otomasyon hücreleri, fikstür-aparat sistemleri ve yüksek hassasiyetli talaşlı imalat çözümleriyle kalite standartlarını bir üst seviyeye taşıyoruz.</p>
               </div>
@@ -406,10 +414,11 @@ export default function App() {
           </div>
         )}
 
-        {/* DOKÜMAN MASTER LİSTESİ (YEREL DOSYA YOLU DESTEKLİ) */}
+        {/* DOKÜMAN MASTER LİSTESİ */}
         {aktifSekme === 'dokuman_master' && (
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>Doküman Master Listesi (Yerel Sabit Disk / Ağ Bağlantılı)</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '5px' }}>Doküman Master Listesi (Yerel Sabit Disk / Ağ Bağlantılı)</h1>
+            <p style={{ color: '#64748b', fontSize: '13px', marginTop: 0, marginBottom: '20px' }}>Prosedürler, talimatlar ve formlar arşivi</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
               
@@ -425,17 +434,19 @@ export default function App() {
                 />
               </div>
 
-              {/* Yerel Yol Bağlantılı Yeni Doküman Ekleme Formu */}
+              {/* Yeni Doküman Ekleme Formu */}
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                 <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>🔗 Yerel Dosya Yolu ile Tanımla</h3>
                 <form onSubmit={yeniDokumanEkle} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <input type="text" placeholder="Doküman Kodu (Örn: PR-01)" value={dokumanKodu} onChange={(e) => setDokumanKodu(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                   <input type="text" placeholder="Doküman Adı" value={dokumanAdi} onChange={(e) => setDokumanAdi(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                  
                   <select value={kategori} onChange={(e) => setKategori(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
-                    <option value="Talimat">Talimat</option>
                     <option value="Prosedür">Prosedür</option>
+                    <option value="Talimat">Talimat</option>
                     <option value="Form">Form</option>
                   </select>
+                  
                   <select value={format} onChange={(e) => setFormat(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
                     <option value="Word">Word (.docx)</option>
                     <option value="Excel">Excel (.xlsx)</option>
@@ -443,10 +454,16 @@ export default function App() {
                   </select>
                   
                   <div style={{ gridColumn: 'span 2' }}>
-                    <input type="text" placeholder="Dosya Yolu (Örn: file:///C:/KYS/Talimatlar/PR-01.docx)" value={yerelDosyaYolu} onChange={(e) => setYerelDosyaYolu(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                    <input 
+                      type="text" 
+                      placeholder="Dosya Yolu (Örn: D:/Kalite/KYS/KEK_13.doc)" 
+                      value={yerelDosyaYolu} 
+                      onChange={(e) => setYerelDosyaYolu(e.target.value)} 
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
+                    />
                   </div>
 
-                  <button type="submit" style={{ gridColumn: 'span 2', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  <button type="submit" style={{ gridColumn: 'span 2', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '11px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
                     Sisteme Kaydet
                   </button>
                 </form>
@@ -454,11 +471,11 @@ export default function App() {
 
             </div>
 
-            {/* Doküman Master Tablosu */}
+            {/* Liste Tablosu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '13px' }}>
                     <th style={{ padding: '10px' }}>Kod</th>
                     <th style={{ padding: '10px' }}>Adı</th>
                     <th style={{ padding: '10px' }}>Kategori</th>
@@ -469,16 +486,19 @@ export default function App() {
                 </thead>
                 <tbody>
                   {filtrelenmisDokumanlar.map((doc) => (
-                    <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>
                       <td style={{ padding: '12px', fontWeight: 'bold', color: '#581c87' }}>{doc.dokuman_kodu}</td>
                       <td style={{ padding: '12px' }}>{doc.dokuman_adi}</td>
                       <td style={{ padding: '12px' }}>{doc.kategori}</td>
-                      <td style={{ padding: '12px' }}>Rev.{doc.revizyon_no || '00'}</td>
+                      <td style={{ padding: '12px' }}><span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>Rev.{doc.revizyon_no || '00'}</span></td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         {doc.orijinal_dosya_url ? (
-                          <a href={doc.orijinal_dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#16a34a', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
-                            📂 Dosyayı Aç
-                          </a>
+                          <button 
+                            onClick={() => yoluPanoyaKopyala(doc.orijinal_dosya_url)} 
+                            style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            📋 Yolu Kopyala ve Aç
+                          </button>
                         ) : (
                           <span style={{ color: '#94a3b8', fontSize: '11px' }}>Yol Tanımlanmadı</span>
                         )}
