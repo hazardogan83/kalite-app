@@ -2,14 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function App() {
-  const [aktifSekme, setAktifSekme] = useState('dokumanlar'); // 'dokumanlar' veya 'girdi_kontrol'
+  const [aktifSekme, setAktifSekme] = useState('dokumanlar');
   const [girdiler, setGirdiler] = useState([]);
 
-  // girdi_kontrol tablosundan verileri çekme
+  // Form input alanları için state
+  const [malzemeAdi, setMalzemeAdi] = useState('');
+  const [teknikOzellikler, setTeknikOzellikler] = useState('');
+  const [malzemeTuru, setMalzemeTuru] = useState('');
+  const [tedarikciFirma, setTedarikciFirma] = useState('');
+
+  // Girdi kontrol verilerini çekme
   const girdileriGetir = async () => {
     const { data, error } = await supabase
       .from('girdi_kontrol')
-      .select('*');
+      .select('*')
+      .order('id', { ascending: false });
 
     if (error) {
       console.error("Veriler çekilemedi:", error.message);
@@ -22,9 +29,41 @@ export default function App() {
     girdileriGetir();
   }, []);
 
+  // Siteden doğrudan veri ekleme fonksiyonu
+  const yeniGirdiEkle = async (e) => {
+    e.preventDefault();
+
+    if (!malzemeAdi || !tedarikciFirma) {
+      alert("Lütfen Malzeme Adı ve Tedarikçi Firma alanlarını doldurun.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from('girdi_kontrol')
+      .insert([
+        { 
+          malzeme_adi: malzemeAdi, 
+          teknik_ozellikler: teknikOzellikler, 
+          malzeme_turu: malzemeTuru, 
+          tedarikci_firma: tedarikciFirma 
+        }
+      ]);
+
+    if (error) {
+      alert("Kayıt eklenirken hata oluştu: " + error.message);
+    } else {
+      alert("Girdi kontrol kaydı başarıyla eklendi!");
+      setMalzemeAdi('');
+      setTeknikOzellikler('');
+      setMalzemeTuru('');
+      setTedarikciFirma('');
+      girdileriGetir();
+    }
+  };
+
   // Kayıt silme fonksiyonu
   const girdiSil = async (id) => {
-    if (window.confirm("Bu girdi kontrol kaydını silmek istediğinize emin misiniz?")) {
+    if (window.confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
       const { error } = await supabase
         .from('girdi_kontrol')
         .delete()
@@ -33,7 +72,6 @@ export default function App() {
       if (error) {
         alert("Silme hatası: " + error.message);
       } else {
-        alert("Kayıt başarıyla silindi!");
         girdileriGetir();
       }
     }
@@ -100,7 +138,6 @@ export default function App() {
               <p style={{ color: '#64748b', margin: 0 }}>Sistem aktif kayıt ve belge merkezi</p>
             </div>
 
-            {/* Örnek Dokümanlar Tablosu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, color: '#1e293b' }}>Aktif Kalite Dokümanları Listesi</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -119,12 +156,6 @@ export default function App() {
                     <td style={{ padding: '12px' }}><span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Excel (.xlsx)</span></td>
                     <td style={{ padding: '12px' }}>Kalibrasyon</td>
                   </tr>
-                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px', color: '#2563eb', fontWeight: '500' }}>PRC-003</td>
-                    <td style={{ padding: '12px' }}>DÖF ve 8D Yönetim Prosedürü</td>
-                    <td style={{ padding: '12px' }}><span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Word (.docx)</span></td>
-                    <td style={{ padding: '12px' }}>DÖF / 8D</td>
-                  </tr>
                 </tbody>
               </table>
             </div>
@@ -136,8 +167,73 @@ export default function App() {
               <p style={{ color: '#64748b', margin: 0 }}>Gelen malzeme kayıtları ve kontrol sonuçları</p>
             </div>
 
-            {/* Girdi Kontrol Verileri Tablosu */}
+            {/* Yeni Girdi Ekleme Formu */}
+            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '25px' }}>
+              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Yeni Girdi Kontrol Kaydı Tanımla</h3>
+              <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'end' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Adı</label>
+                  <input 
+                    type="text" 
+                    placeholder="Örn: Cıvata" 
+                    value={malzemeAdi} 
+                    onChange={(e) => setMalzemeAdi(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Teknik Özellikler</label>
+                  <input 
+                    type="text" 
+                    placeholder="Örn: M5x20" 
+                    value={teknikOzellikler} 
+                    onChange={(e) => setTeknikOzellikler(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Türü</label>
+                  <input 
+                    type="text" 
+                    placeholder="Örn: Bağlantı Elemanı" 
+                    value={malzemeTuru} 
+                    onChange={(e) => setMalzemeTuru(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Tedarikçi Firma</label>
+                  <input 
+                    type="text" 
+                    placeholder="Örn: Kartal Cıvata" 
+                    value={tedarikciFirma} 
+                    onChange={(e) => setTedarikciFirma(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <button 
+                    type="submit"
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px 20px',
+                      borderRadius: '6px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Kayıt Ekle
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Kayıtlar Listesi Tablosu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Girdi Kontrol Kayıtları</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
@@ -179,7 +275,7 @@ export default function App() {
                   ) : (
                     <tr>
                       <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
-                        Henüz kayıtlı girdi kontrol verisi bulunmuyor.
+                        Henüz kayıtlı girdi kontrol verisi bulunmuyor. Yukarıdaki formdan yeni kayıt ekleyebilirsiniz.
                       </td>
                     </tr>
                   )}
