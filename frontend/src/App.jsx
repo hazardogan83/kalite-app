@@ -11,7 +11,7 @@ export default function App() {
   const [aktifSekme, setAktifSekme] = useState('dashboard');
   const [acikMenu, setAcikMenu] = useState({ kalite: true, depo: false, uretim: false, siparis: false, yonetim: false });
 
-  // Girdi Kontrol State'leri (Geliştirilmiş)
+  // Girdi Kontrol State'leri
   const [girdiler, setGirdiler] = useState([]);
   const [malzemeAdi, setMalzemeAdi] = useState('');
   const [teknikOzellikler, setTeknikOzellikler] = useState('');
@@ -23,31 +23,14 @@ export default function App() {
   const [kontrolSonucu, setKontrolSonucu] = useState('Kabul');
   const [kontrolEden, setKontrolEden] = useState('');
 
-  // Doküman Master Listesi State'leri
+  // Doküman Master Listesi State'leri (Yerel Yol Destekli)
   const [dokumanlar, setDokumanlar] = useState([]);
   const [aramaMetni, setAramaMetni] = useState('');
   const [dokumanKodu, setDokumanKodu] = useState('');
   const [dokumanAdi, setDokumanAdi] = useState('');
   const [kategori, setKategori] = useState('Talimat');
   const [format, setFormat] = useState('Word');
-  
-  // Dosyalar için ayrı state'ler
-  const [secilenPdfDosya, setSecilenPdfDosya] = useState(null);
-  const [secilenOrijinalDosya, setSecilenOrijinalDosya] = useState(null);
-  const [yukleniyor, setYukleniyor] = useState(false);
-
-  // Dosya adındaki Türkçe karakterleri ve boşlukları temizleyen yardımcı fonksiyon
-  const dosyaadiniTemizle = (isim) => {
-    return isim
-      .replace(/ç/g, "c").replace(/Ç/g, "C")
-      .replace(/ğ/g, "g").replace(/Ğ/g, "G")
-      .replace(/ı/g, "i").replace(/İ/g, "I")
-      .replace(/ö/g, "o").replace(/Ö/g, "O")
-      .replace(/ş/g, "s").replace(/Ş/g, "S")
-      .replace(/ü/g, "u").replace(/Ü/g, "U")
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_.-]/g, "");
-  };
+  const [yerelDosyaYolu, setYerelDosyaYolu] = useState('');
 
   // Verileri Çekme
   const verileriGetir = async () => {
@@ -86,7 +69,7 @@ export default function App() {
     setAcikMenu(prev => ({ ...prev, [menuAdi]: !prev[menuAdi] }));
   };
 
-  // Girdi Ekleme (Geliştirilmiş Alanlarla)
+  // Girdi Ekleme
   const yeniGirdiEkle = async (e) => {
     e.preventDefault();
     if (!malzemeAdi || !tedarikciFirma) {
@@ -125,7 +108,7 @@ export default function App() {
     }
   };
 
-  // Yeni Doküman Ekleme veya Otomatik Revizyon Artırarak Güncelleme
+  // Yerel / Ağ Yolu ile Doküman Ekleme
   const yeniDokumanEkle = async (e) => {
     e.preventDefault();
     if (!dokumanKodu || !dokumanAdi) {
@@ -133,78 +116,36 @@ export default function App() {
       return;
     }
 
-    setYukleniyor(true);
-    let pdfUrl = null;
-    let orijinalUrl = null;
+    const mevcutDokumanlar = dokumanlar.filter(d => d.dokuman_kodu.toLowerCase() === dokumanKodu.toLowerCase());
+    let yeniRevizyonNo = "00";
 
-    try {
-      const mevcutDokumanlar = dokumanlar.filter(d => d.dokuman_kodu.toLowerCase() === dokumanKodu.toLowerCase());
-      let yeniRevizyonNo = "00";
+    if (mevcutDokumanlar.length > 0) {
+      const enYuksekRev = mevcutDokumanlar.reduce((max, doc) => {
+        return parseInt(doc.revizyon_no || "0") > parseInt(max || "0") ? doc.revizyon_no : max;
+      }, "00");
+      yeniRevizyonNo = String(parseInt(enYuksekRev) + 1).padStart(2, '0');
+    }
 
-      if (mevcutDokumanlar.length > 0) {
-        const enYuksekRev = mevcutDokumanlar.reduce((max, doc) => {
-          return parseInt(doc.revizyon_no || "0") > parseInt(max || "0") ? doc.revizyon_no : max;
-        }, "00");
-        
-        yeniRevizyonNo = String(parseInt(enYuksekRev) + 1).padStart(2, '0');
+    const { error } = await supabase.from('dokuman_master').insert([
+      { 
+        dokuman_kodu: dokumanKodu.toUpperCase(), 
+        dokuman_adi: dokumanAdi, 
+        kategori: kategori, 
+        format: format, 
+        revizyon_no: yeniRevizyonNo, 
+        yayin_tarihi: new Date().toISOString().split('T')[0],
+        orijinal_dosya_url: yerelDosyaYolu // Yerel yol / link buraya kaydediliyor
       }
+    ]);
 
-      if (secilenPdfDosya) {
-        const temizAd = dosyaadiniTemizle(secilenPdfDosya.name);
-        const pdfAdi = `pdf_${Date.now()}_${temizAd}`;
-        const { error: pdfError } = await supabase.storage
-          .from('dokumanlar')
-          .upload(pdfAdi, secilenPdfDosya);
-
-        if (pdfError) throw new Error("PDF yükleme hatası: " + pdfError.message);
-
-        const { data: pdfUrlData } = supabase.storage
-          .from('dokumanlar')
-          .getPublicUrl(pdfAdi);
-        pdfUrl = pdfUrlData.publicUrl;
-      }
-
-      if (secilenOrijinalDosya) {
-        const temizAd = dosyaadiniTemizle(secilenOrijinalDosya.name);
-        const orijinalAdi = `orijinal_${Date.now()}_${temizAd}`;
-        const { error: orijinalError } = await supabase.storage
-          .from('dokumanlar')
-          .upload(orijinalAdi, secilenOrijinalDosya);
-
-        if (orijinalError) throw new Error("Orijinal dosya yükleme hatası: " + orijinalError.message);
-
-        const { data: orijinalUrlData } = supabase.storage
-          .from('dokumanlar')
-          .getPublicUrl(orijinalAdi);
-        orijinalUrl = orijinalUrlData.publicUrl;
-      }
-
-      const { error: dbError } = await supabase.from('dokuman_master').insert([
-        { 
-          dokuman_kodu: dokumanKodu.toUpperCase(), 
-          dokuman_adi: dokumanAdi, 
-          kategori: kategori, 
-          format: format, 
-          revizyon_no: yeniRevizyonNo, 
-          yayin_tarihi: new Date().toISOString().split('T')[0],
-          dosya_url: pdfUrl,
-          orijinal_dosya_url: orijinalUrl
-        }
-      ]);
-
-      if (dbError) throw dbError;
-
+    if (error) {
+      alert("Hata: " + error.message);
+    } else {
       alert(`Doküman başarıyla kaydedildi! (Revizyon: Rev.${yeniRevizyonNo})`);
       setDokumanKodu(''); 
       setDokumanAdi(''); 
-      setSecilenPdfDosya(null);
-      setSecilenOrijinalDosya(null);
+      setYerelDosyaYolu('');
       verileriGetir();
-
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setYukleniyor(false);
     }
   };
 
@@ -224,7 +165,6 @@ export default function App() {
     (doc.format && doc.format.toLowerCase().includes(aramaMetni.toLowerCase()))
   );
 
-  // 1. EĞER OTURUM AÇILMADIYSA GİRİŞ Ekrani
   if (!oturumAcildi) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1e1b4b', fontFamily: 'sans-serif' }}>
@@ -251,22 +191,17 @@ export default function App() {
               Güvenli Giriş Yap
             </button>
           </form>
-          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '11px', color: '#94a3b8' }}>
-            Bursa / Osmangazi Fabrika Otomasyon Yönetim Sistemi
-          </div>
         </div>
       </div>
     );
   }
 
-  // 2. OTURUM AÇILDIKTAN SONRA ANA ERP PANELİ
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f4f6f9', margin: 0 }}>
       
-      {/* SOL MENÜ (KADEMELİ / AKORDEON YAPIDA) */}
+      {/* SOL MENÜ */}
       <div style={{ width: '280px', backgroundColor: '#1e1b4b', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', overflowY: 'auto' }}>
         <div>
-          {/* Logo / Başlık */}
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', borderBottom: '1px solid #312e81', paddingBottom: '15px' }}>
             <div style={{ backgroundColor: '#581c87', color: 'white', padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '14px' }}>MM</div>
             <div>
@@ -276,25 +211,18 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            
-            {/* Dashboard / Ana Sayfa Butonu */}
             <button 
               onClick={() => setAktifSekme('dashboard')}
-              style={{
-                background: aktifSekme === 'dashboard' ? '#581c87' : 'transparent',
-                color: 'white', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px'
-              }}
+              style={{ background: aktifSekme === 'dashboard' ? '#581c87' : 'transparent', color: 'white', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px' }}
             >
               🏠 Ana Sayfa / Kurumsal
             </button>
 
-            {/* 1. KALİTE YÖNETİMİ (Sadece Sistem ve Dokümantasyon) */}
+            {/* Kalite Yönetimi */}
             <div>
               <button 
                 onClick={() => menuToggle('kalite')}
-                style={{
-                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}
+                style={{ width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
                 <span>🛡️ Kalite Yönetimi (KYS)</span>
                 <span style={{ fontSize: '12px' }}>{acikMenu.kalite ? '▼' : '▶'}</span>
@@ -304,30 +232,19 @@ export default function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
                   <button 
                     onClick={() => setAktifSekme('dokuman_master')}
-                    style={{
-                      background: aktifSekme === 'dokuman_master' ? '#3b0764' : 'transparent',
-                      color: aktifSekme === 'dokuman_master' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
-                    }}
+                    style={{ background: aktifSekme === 'dokuman_master' ? '#3b0764' : 'transparent', color: aktifSekme === 'dokuman_master' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
                   >
                     • Doküman Master Listesi
-                  </button>
-                  <button 
-                    onClick={() => alert("Bu modül yakında eklenecektir.")}
-                    style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
-                  >
-                    • Ölçü Kontrol & Kalibrasyon
                   </button>
                 </div>
               )}
             </div>
 
-            {/* 2. DEPO & MALZEME KABUL (Girdi Kontrol Buraya Taşındı) */}
+            {/* Depo & Malzeme Kabul */}
             <div>
               <button 
                 onClick={() => menuToggle('depo')}
-                style={{
-                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}
+                style={{ width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
                 <span>📦 Depo & Malzeme Kabul</span>
                 <span style={{ fontSize: '12px' }}>{acikMenu.depo ? '▼' : '▶'}</span>
@@ -337,102 +254,22 @@ export default function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
                   <button 
                     onClick={() => setAktifSekme('girdi_kontrol')}
-                    style={{
-                      background: aktifSekme === 'girdi_kontrol' ? '#3b0764' : 'transparent',
-                      color: aktifSekme === 'girdi_kontrol' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
-                    }}
+                    style={{ background: aktifSekme === 'girdi_kontrol' ? '#3b0764' : 'transparent', color: aktifSekme === 'girdi_kontrol' ? 'white' : '#c084fc', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
                   >
                     • Girdi Kontrol & Kabul
                   </button>
-                  <button onClick={() => alert("Stok ve Raf Takip modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    • Stok Durum Listesi
-                  </button>
                 </div>
               )}
             </div>
-
-            {/* 3. ÜRETİM BÖLÜMÜ */}
-            <div>
-              <button 
-                onClick={() => menuToggle('uretim')}
-                style={{
-                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}
-              >
-                <span>⚙️ Üretim & Talaşlı İmalat</span>
-                <span style={{ fontSize: '12px' }}>{acikMenu.uretim ? '▼' : '▶'}</span>
-              </button>
-
-              {acikMenu.uretim && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
-                  <button onClick={() => alert("Özel Makina İmalat Takibi modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    • Özel Makina Projeleri
-                  </button>
-                  <button onClick={() => alert("Fikstür ve Aparat Takip modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    • Fikstür / Aparat Takibi
-                  </button>
-                  <button onClick={() => alert("CNC Operasyon Takip modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    • CNC Operasyon & İş Emri
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 4. SİPARİŞ BÖLÜMÜ */}
-            <div>
-              <button 
-                onClick={() => menuToggle('siparis')}
-                style={{
-                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}
-              >
-                <span>🚚 Sipariş & Sevkiyat</span>
-                <span style={{ fontSize: '12px' }}>{acikMenu.siparis ? '▼' : '▶'}</span>
-              </button>
-
-              {acikMenu.siparis && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
-                  <button onClick={() => alert("Müşteri Siparişleri modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    • Müşteri Sipariş Listesi
-                  </button>
-                  <button onClick={() => alert("Sevk İrsaliyesi modülü hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    • Sevkiyat & İrsaliye
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 5. YÖNETİM BÖLÜMÜ */}
-            <div>
-              <button 
-                onClick={() => menuToggle('yonetim')}
-                style={{
-                  width: '100%', background: 'transparent', color: '#cbd5e1', border: 'none', padding: '12px 14px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}
-              >
-                <span>📊 Yönetim & Raporlar</span>
-                <span style={{ fontSize: '12px' }}>{acikMenu.yonetim ? '▼' : '▶'}</span>
-              </button>
-
-              {acikMenu.yonetim && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '20px', marginTop: '4px' }}>
-                  <button onClick={() => alert("Performans Raporları hazırlanıyor.")} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '10px 12px', textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                    • KPI ve Raporlar
-                  </button>
-                </div>
-              )}
-            </div>
-
           </div>
         </div>
 
-        {/* Alt Kullanıcı Bilgisi ve Çıkış */}
         <div style={{ borderTop: '1px solid #312e81', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '13px', fontWeight: '500' }}>Hazar</div>
             <div style={{ fontSize: '11px', color: '#c084fc' }}>hazar@minyatur.com</div>
           </div>
-          <button onClick={() => setOturumAcildi(false)} style={{ background: '#312e81', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }} title="Oturumu Kapat">
+          <button onClick={() => setOturumAcildi(false)} style={{ background: '#312e81', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
             Çıkış
           </button>
         </div>
@@ -441,327 +278,149 @@ export default function App() {
       {/* ANA İÇERİK ALANI */}
       <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
         
-        {/* ================= 1. DASHBOARD / KARŞILAMA EKRANI ================= */}
         {aktifSekme === 'dashboard' && (
           <div>
-            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', color: 'white', padding: '40px', borderRadius: '12px', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-                <div>
-                  <span style={{ backgroundColor: '#581c87', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                    Kurumsal ERP & KYS Portalı
-                  </span>
-                  <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '15px 0 10px 0' }}>Minyatür Makina Robot Sistemleri</h1>
-                  <p style={{ color: '#e9d5ff', fontSize: '15px', maxWidth: '650px', lineHeight: '1.5', margin: 0 }}>
-                    Özel makina imalatı, robotik otomasyon hücreleri, fikstür-aparat sistemleri ve yüksek hassasiyetli talaşlı imalat çözümleriyle kalite standartlarını bir üst seviyeye taşıyoruz.
-                  </p>
-                </div>
-                <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '20px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#c084fc' }}>Aktif Modül</div>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>Depo & KYS Entegre</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Faaliyet Alanları Kartları */}
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px' }}>🏭 Faaliyet Alanlarımız & Uzmanlıklar</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #581c87' }}>
-                <div style={{ fontSize: '28px', marginBottom: '10px' }}>🤖</div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Özel Makine İmalatı</h3>
-                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Endüstriyel otomasyon hatları, özel amaçlı makineler ve robotik hücre entegrasyonları.</p>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #16a34a' }}>
-                <div style={{ fontSize: '28px', marginBottom: '10px' }}>⚙️</div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Hassas Talaşlı İmalat</h3>
-                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Alüminyum ve çelik parçaların CNC tezgahlarda yüksek hassasiyetle işlenmesi.</p>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #d97706' }}>
-                <div style={{ fontSize: '28px', marginBottom: '10px' }}>📐</div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>Fikstür & Aparat Tasarımı</h3>
-                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Kaynak, montaj ve kalite kontrol fikstürlerinin özel tasarımı ve imalatı.</p>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderTop: '4px solid #9333ea' }}>
-                <div style={{ fontSize: '28px', marginBottom: '10px' }}>⚡</div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1e293b' }}>EV & Batarya Çözümleri</h3>
-                <p style={{ color: '#64748b', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>Elektrikli araç batarya taşıyıcıları ve tren yolcu bagaj seperatör sistemleri üretimi.</p>
-              </div>
-            </div>
-
-            {/* Hızlı Erişim / Özet Widget Alanı */}
-            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>🚀 Hızlı Sistem Özeti</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>Kayıtlı Doküman Sayısı</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#581c87', marginTop: '5px' }}>{dokumanlar.length} Adet</div>
-                </div>
-                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>Malzeme Kabul Kayıtları</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a', marginTop: '5px' }}>{girdiler.length} Adet</div>
-                </div>
-                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>Sistem Durumu</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#16a34a', marginTop: '8px' }}>🟢 Aktif & Senkronize</div>
-                </div>
-              </div>
+            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', color: 'white', padding: '40px', borderRadius: '12px', marginBottom: '30px' }}>
+              <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 10px 0' }}>Minyatür Makina Robot Sistemleri</h1>
+              <p style={{ color: '#e9d5ff', fontSize: '15px', margin: 0 }}>Yerel KYS Entegrasyonlu ERP Paneli</p>
             </div>
           </div>
         )}
 
-        {/* ================= 2. GİRDİ KONTROL & MALZEME KABUL (DEPO MENÜSÜ) ================= */}
+        {/* GİRDİ KONTROL */}
         {aktifSekme === 'girdi_kontrol' && (
           <div>
-            <div style={{ marginBottom: '25px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Depo Malzeme Kabul & Girdi Kontrol</h1>
-              <p style={{ color: '#64748b', margin: 0 }}>Gelen hammadde, irsaliye takibi ve depo giriş onay süreçleri</p>
-            </div>
-
-            {/* Geliştirilmiş Yeni Girdi Formu */}
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>Depo Malzeme Kabul & Girdi Kontrol</h1>
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '25px' }}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>📦 Yeni Malzeme Kabul Kaydı Oluştur</h3>
               <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'end' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Adı *</label>
-                  <input type="text" placeholder="Örn: Alüminyum Profil" value={malzemeAdi} onChange={(e) => setMalzemeAdi(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Tedarikçi Firma *</label>
-                  <input type="text" placeholder="Örn: Alüminyum A.Ş." value={tedarikciFirma} onChange={(e) => setTedarikciFirma(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} required />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>İrsaliye Numarası</label>
-                  <input type="text" placeholder="Örn: IRS-2026-0841" value={irsaliyeNo} onChange={(e) => setIrsaliyeNo(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Parti / Lot Numarası</label>
-                  <input type="text" placeholder="Örn: LOT-6063-T5" value={partiNo} onChange={(e) => setPartiNo(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Teknik Özellikler</label>
-                  <input type="text" placeholder="Örn: 6063 T5 Kalite" value={teknikOzellikler} onChange={(e) => setTeknikOzellikler(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Türü</label>
-                  <input type="text" placeholder="Örn: Hammadde / Profil" value={malzemeTuru} onChange={(e) => setMalzemeTuru(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Miktar</label>
-                  <input type="number" placeholder="Örn: 250" value={miktar} onChange={(e) => setMiktar(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kontrol Kararı</label>
-                  <select value={kontrolSonucu} onChange={(e) => setKontrolSonucu(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', backgroundColor: 'white' }}>
-                    <option value="Kabul">Kabul</option>
-                    <option value="Şartlı Kabul">Şartlı Kabul</option>
-                    <option value="Ret">Ret</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kontrol Eden / Depo Sorumlusu</label>
-                  <input type="text" placeholder="Adınız Soyadınız" value={kontrolEden} onChange={(e) => setKontrolEden(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <button type="submit" style={{ width: '100%', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '11px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Malzemeyi Kabul Et & Kaydet</button>
-                </div>
+                <input type="text" placeholder="Malzeme Adı *" value={malzemeAdi} onChange={(e) => setMalzemeAdi(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
+                <input type="text" placeholder="Tedarikçi Firma *" value={tedarikciFirma} onChange={(e) => setTedarikciFirma(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
+                <input type="text" placeholder="İrsaliye No" value={irsaliyeNo} onChange={(e) => setIrsaliyeNo(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                <input type="text" placeholder="Parti / Lot No" value={partiNo} onChange={(e) => setPartiNo(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                <input type="number" placeholder="Miktar" value={miktar} onChange={(e) => setMiktar(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                <select value={kontrolSonucu} onChange={(e) => setKontrolSonucu(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
+                  <option value="Kabul">Kabul</option>
+                  <option value="Şartlı Kabul">Şartlı Kabul</option>
+                  <option value="Ret">Ret</option>
+                </select>
+                <input type="text" placeholder="Kontrol Eden" value={kontrolEden} onChange={(e) => setKontrolEden(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                <button type="submit" style={{ backgroundColor: '#581c87', color: 'white', border: 'none', padding: '11px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Kaydet</button>
               </form>
             </div>
 
-            {/* Girdi Listesi Tablosu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Gelen Malzeme Kabul Geçmişi</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '13px' }}>
-                    <th style={{ padding: '10px' }}>ID</th>
                     <th style={{ padding: '10px' }}>Malzeme / Tedarikçi</th>
-                    <th style={{ padding: '10px' }}>İrsaliye / Lot No</th>
-                    <th style={{ padding: '10px' }}>Teknik Detay</th>
+                    <th style={{ padding: '10px' }}>İrsaliye / Lot</th>
                     <th style={{ padding: '10px' }}>Miktar</th>
                     <th style={{ padding: '10px' }}>Karar</th>
-                    <th style={{ padding: '10px' }}>Kabul Eden</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>İşlemler</th>
+                    <th style={{ padding: '10px' }}>İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {girdiler.length > 0 ? (
-                    girdiler.map((item) => (
-                      <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>
-                        <td style={{ padding: '12px' }}>{item.id}</td>
-                        <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{item.malzeme_adi}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{item.tedarikci_firma}</div>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: '500' }}>{item.irsaliye_no || '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>Lot: {item.parti_no || '-'}</div>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <div>{item.teknik_ozellikler || '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{item.malzeme_turu}</div>
-                        </td>
-                        <td style={{ padding: '12px', fontWeight: 'bold' }}>{item.miktar}</td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ 
-                            backgroundColor: item.kontrol_sonucu === 'Kabul' ? '#dcfce7' : item.kontrol_sonucu === 'Şartlı Kabul' ? '#fef3c7' : '#fee2e2',
-                            color: item.kontrol_sonucu === 'Kabul' ? '#166534' : item.kontrol_sonucu === 'Şartlı Kabul' ? '#92400e' : '#991b1b',
-                            padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600'
-                          }}>
-                            {item.kontrol_sonucu}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px', color: '#475569' }}>{item.kontrol_eden || 'Depo'}</td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <button onClick={() => girdiSil(item.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', fontSize: '11px' }}>Sil</button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Henüz kayıtlı malzeme kabul verisi bulunmuyor.</td>
+                  {girdiler.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>
+                      <td style={{ padding: '12px' }}><b>{item.malzeme_adi}</b><br/><span style={{ color: '#64748b' }}>{item.tedarikci_firma}</span></td>
+                      <td style={{ padding: '12px' }}>{item.irsaliye_no || '-'}<br/><span style={{ color: '#64748b' }}>{item.parti_no}</span></td>
+                      <td style={{ padding: '12px' }}>{item.miktar}</td>
+                      <td style={{ padding: '12px' }}>{item.kontrol_sonucu}</td>
+                      <td style={{ padding: '12px' }}><button onClick={() => girdiSil(item.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer' }}>Sil</button></td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* ================= 3. DOKÜMAN MASTER LİSTESİ (KYS) ================= */}
+        {/* DOKÜMAN MASTER LİSTESİ (YEREL YOL DESTEKLİ) */}
         {aktifSekme === 'dokuman_master' && (
           <div>
-            <div style={{ marginBottom: '25px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 5px 0' }}>Doküman Master Listesi (KYS)</h1>
-              <p style={{ color: '#64748b', margin: 0 }}>Prosedürler, talimatlar ve formlar arşivi (Otomatik Revizyon Takipli)</p>
-            </div>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>Doküman Master Listesi (Yerel Ağ / PC Bağlantılı)</h1>
 
-            {/* Arama ve Yeni Doküman Ekleme Alanı */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
               
-              {/* Arama Kutusu */}
+              {/* Arama */}
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>🔍 Doküman Arama</h3>
+                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>🔍 Doküman Ara</h3>
                 <input 
                   type="text" 
-                  placeholder="Talimat adı, kodu, format veya kategori yazın..." 
+                  placeholder="Kod, ad veya kategori ara..." 
                   value={aramaMetni} 
                   onChange={(e) => setAramaMetni(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '14px' }}
+                  style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                 />
-                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', marginBottom: 0 }}>Aynı kodla yeni dosya yüklerseniz sistem otomatik olarak revizyonu artırır (Örn: Rev.00 -&gt; Rev.01).</p>
               </div>
 
-              {/* Yeni Doküman / Revizyon Ekleme Formu */}
+              {/* Yerel Yol ile Ekleme Formu */}
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>➕ Yeni Doküman / Revizyon Ekle</h3>
+                <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>🔗 Yerel Dosya Yolu ile Tanımla</h3>
                 <form onSubmit={yeniDokumanEkle} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <input type="text" placeholder="Doküman Kodu (Örn: TL-01)" value={dokumanKodu} onChange={(e) => setDokumanKodu(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                  <input type="text" placeholder="Doküman Kodu (Örn: PR-01)" value={dokumanKodu} onChange={(e) => setDokumanKodu(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                   <input type="text" placeholder="Doküman Adı" value={dokumanAdi} onChange={(e) => setDokumanAdi(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                   <select value={kategori} onChange={(e) => setKategori(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
                     <option value="Talimat">Talimat</option>
                     <option value="Prosedür">Prosedür</option>
                     <option value="Form">Form</option>
-                    <option value="Plan">Plan</option>
                   </select>
                   <select value={format} onChange={(e) => setFormat(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
                     <option value="Word">Word (.docx)</option>
                     <option value="Excel">Excel (.xlsx)</option>
-                    <option value="PowerPoint">PowerPoint (.pptx)</option>
+                    <option value="PDF">PDF (.pdf)</option>
                   </select>
                   
-                  {/* PDF Görüntüleme Dosyası */}
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#581c87', marginBottom: '2px' }}>📖 Görüntüleme İçin PDF Dosyası:</label>
-                    <input type="file" accept=".pdf" onChange={(e) => setSecilenPdfDosya(e.target.files[0])} style={{ width: '100%', fontSize: '12px' }} />
+                    <input type="text" placeholder="Dosya Yolu / Link (Örn: file:///C:/KYS/talimat.docx veya ağ yolu)" value={yerelDosyaYolu} onChange={(e) => setYerelDosyaYolu(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                   </div>
 
-                  {/* Orijinal Düzenleme Dosyası */}
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#166534', marginBottom: '2px' }}>✏️ Düzenleme İçin Orijinal Dosya (Word/Excel):</label>
-                    <input type="file" onChange={(e) => setSecilenOrijinalDosya(e.target.files[0])} style={{ width: '100%', fontSize: '12px' }} />
-                  </div>
-
-                  <button type="submit" disabled={yukleniyor} style={{ gridColumn: 'span 2', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    {yukleniyor ? 'Yükleniyor...' : 'Kaydet ve Revizyonu Yönet'}
+                  <button type="submit" style={{ gridColumn: 'span 2', backgroundColor: '#581c87', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    Sisteme Kaydet
                   </button>
                 </form>
               </div>
 
             </div>
 
-            {/* Doküman Listesi Tablosu */}
+            {/* Liste */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Kayıtlı Dokümanlar ({filtrelenmisDokumanlar.length})</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '10px' }}>Doküman Kodu</th>
-                    <th style={{ padding: '10px' }}>Doküman Adı</th>
+                    <th style={{ padding: '10px' }}>Kod</th>
+                    <th style={{ padding: '10px' }}>Adı</th>
                     <th style={{ padding: '10px' }}>Kategori</th>
-                    <th style={{ padding: '10px' }}>Format</th>
                     <th style={{ padding: '10px' }}>Revizyon</th>
-                    <th style={{ padding: '10px' }}>Yayın Tarihi</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>Dosya İşlemleri</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Dosyaya Eriş</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Sil</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtrelenmisDokumanlar.length > 0 ? (
-                    filtrelenmisDokumanlar.map((doc) => (
-                      <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#581c87' }}>{doc.dokuman_kodu}</td>
-                        <td style={{ padding: '12px', fontWeight: '500' }}>{doc.dokuman_adi}</td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ backgroundColor: '#f3e8ff', color: '#581c87', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                            {doc.kategori}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ 
-                            backgroundColor: doc.format === 'Excel' ? '#dcfce7' : doc.format === 'PowerPoint' ? '#ffedd5' : '#f3e8ff',
-                            color: doc.format === 'Excel' ? '#166534' : doc.format === 'PowerPoint' ? '#9a3412' : '#581c87',
-                            padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600'
-                          }}>
-                            {doc.format || 'Word'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-                            Rev.{doc.revizyon_no || '00'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                            {doc.dosya_url ? (
-                              <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#6b21a8', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }} title="Tarayıcıda PDF Olarak Görüntüle">
-                                👁️ Görüntüle
-                              </a>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '11px' }}>PDF Yok</span>
-                            )}
-
-                            {doc.orijinal_dosya_url ? (
-                              <a href={doc.orijinal_dosya_url} target="_blank" rel="noopener noreferrer" download style={{ backgroundColor: '#16a34a', color: 'white', padding: '6px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }} title="Orijinal Formatında İndir ve Düzenle">
-                                📥 Düzenle ({doc.format || 'Dosya'})
-                              </a>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '11px' }}>Orijinal Yok</span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <button onClick={() => dokumanSil(doc.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', fontSize: '11px' }}>Sil</button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Aramanıza uygun doküman bulunamadı.</td>
+                  {filtrelenmisDokumanlar.map((doc) => (
+                    <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#581c87' }}>{doc.dokuman_kodu}</td>
+                      <td style={{ padding: '12px' }}>{doc.dokuman_adi}</td>
+                      <td style={{ padding: '12px' }}>{doc.kategori}</td>
+                      <td style={{ padding: '12px' }}>Rev.{doc.revizyon_no || '00'}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        {doc.orijinal_dosya_url ? (
+                          <a href={doc.orijinal_dosya_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#16a34a', color: 'white', padding: '6px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
+                            📂 Dosyayı Aç
+                          </a>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '11px' }}>Yol Tanımlanmadı</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <button onClick={() => dokumanSil(doc.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Sil</button>
+                      </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
+
           </div>
         )}
 
