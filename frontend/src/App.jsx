@@ -19,18 +19,17 @@ export default function App() {
   const [dokumanKodu, setDokumanKodu] = useState('');
   const [dokumanAdi, setDokumanAdi] = useState('');
   const [kategori, setKategori] = useState('Talimat');
+  const [format, setFormat] = useState('Word');
   const [revizyonNo, setRevizyonNo] = useState('00');
 
   // Verileri Çekme
   const verileriGetir = async () => {
-    // Girdi Kontrol verileri
     const { data: girdiData } = await supabase
       .from('girdi_kontrol')
       .select('*')
       .order('id', { ascending: false });
     if (girdiData) setGirdiler(girdiData);
 
-    // Doküman Master verileri
     const { data: dokumanData } = await supabase
       .from('dokuman_master')
       .select('*')
@@ -80,7 +79,7 @@ export default function App() {
     }
 
     const { error } = await supabase.from('dokuman_master').insert([
-      { dokuman_kodu: dokumanKodu, dokuman_adi: dokumanAdi, kategori: kategori, revizyon_no: revizyonNo, yayin_tarihi: new Date().toISOString().split('T')[0] }
+      { dokuman_kodu: dokumanKodu, dokuman_adi: dokumanAdi, kategori: kategori, format: format, revizyon_no: revizyonNo, yayin_tarihi: new Date().toISOString().split('T')[0] }
     ]);
 
     if (error) {
@@ -100,11 +99,12 @@ export default function App() {
     }
   };
 
-  // Arama filtresi (Doküman kodu veya adına göre)
+  // Arama filtresi
   const filtrelenmisDokumanlar = dokumanlar.filter(doc => 
     doc.dokuman_adi.toLowerCase().includes(aramaMetni.toLowerCase()) ||
     doc.dokuman_kodu.toLowerCase().includes(aramaMetni.toLowerCase()) ||
-    doc.kategori.toLowerCase().includes(aramaMetni.toLowerCase())
+    doc.kategori.toLowerCase().includes(aramaMetni.toLowerCase()) ||
+    (doc.format && doc.format.toLowerCase().includes(aramaMetni.toLowerCase()))
   );
 
   return (
@@ -156,7 +156,7 @@ export default function App() {
               <p style={{ color: '#64748b', margin: 0 }}>Gelen malzeme kayıtları ve kontrol sonuçları</p>
             </div>
 
-            {/* Yeni Girdi Ekleme Formu */}
+            {/* Yeni Girdi Formu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '25px' }}>
               <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Yeni Girdi Kontrol Kaydı Tanımla</h3>
               <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '15px', alignItems: 'end' }}>
@@ -194,7 +194,7 @@ export default function App() {
               </form>
             </div>
 
-            {/* Kayıtlar Listesi Tablosu */}
+            {/* Girdi Listesi Tablosu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Girdi Kontrol Kayıtları</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -253,20 +253,20 @@ export default function App() {
             {/* Arama ve Yeni Doküman Ekleme Alanı */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
               
-              {/* Arama Kutusu Kartı */}
+              {/* Arama Kutusu */}
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                 <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>🔍 Doküman Arama</h3>
                 <input 
                   type="text" 
-                  placeholder="Talimat adı, kodu veya kategori yazın (Örn: Ölçüm, TL-01)..." 
+                  placeholder="Talimat adı, kodu, format veya kategori yazın..." 
                   value={aramaMetni} 
                   onChange={(e) => setAramaMetni(e.target.value)}
                   style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '14px' }}
                 />
-                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', marginBottom: 0 }}>Aradığınız ifadeye uygun dokümanlar aşağıda anlık olarak filtrelenir.</p>
+                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', marginBottom: 0 }}>Aradığınız ifadeye uygun dokümanlar anlık olarak filtrelenir.</p>
               </div>
 
-              {/* Yeni Doküman Ekleme Kartı */}
+              {/* Yeni Doküman Ekleme Formu */}
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                 <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>➕ Yeni Doküman Tanımla</h3>
                 <form onSubmit={yeniDokumanEkle} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -278,7 +278,12 @@ export default function App() {
                     <option value="Form">Form</option>
                     <option value="Plan">Plan</option>
                   </select>
-                  <button type="submit" style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Ekle</button>
+                  <select value={format} onChange={(e) => setFormat(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
+                    <option value="Word">Word (.docx)</option>
+                    <option value="Excel">Excel (.xlsx)</option>
+                    <option value="PowerPoint">PowerPoint (.pptx)</option>
+                  </select>
+                  <button type="submit" style={{ gridColumn: 'span 2', backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Ekle</button>
                 </form>
               </div>
 
@@ -293,6 +298,7 @@ export default function App() {
                     <th style={{ padding: '10px' }}>Doküman Kodu</th>
                     <th style={{ padding: '10px' }}>Doküman Adı</th>
                     <th style={{ padding: '10px' }}>Kategori</th>
+                    <th style={{ padding: '10px' }}>Format</th>
                     <th style={{ padding: '10px' }}>Revizyon</th>
                     <th style={{ padding: '10px' }}>Yayın Tarihi</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>İşlemler</th>
@@ -309,6 +315,15 @@ export default function App() {
                             {doc.kategori}
                           </span>
                         </td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ 
+                            backgroundColor: doc.format === 'Excel' ? '#dcfce7' : doc.format === 'PowerPoint' ? '#ffedd5' : '#e0e7ff',
+                            color: doc.format === 'Excel' ? '#166534' : doc.format === 'PowerPoint' ? '#9a3412' : '#3730a3',
+                            padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600'
+                          }}>
+                            {doc.format || 'Word'}
+                          </span>
+                        </td>
                         <td style={{ padding: '12px' }}>Rev.{doc.revizyon_no}</td>
                         <td style={{ padding: '12px', color: '#64748b' }}>{doc.yayin_tarihi}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -318,7 +333,7 @@ export default function App() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Aramanıza uygun doküman bulunamadı.</td>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Aramanıza uygun doküman bulunamadı.</td>
                     </tr>
                   )}
                 </tbody>
