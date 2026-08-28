@@ -5,14 +5,14 @@ export default function App() {
   const [aktifSekme, setAktifSekme] = useState('dokumanlar');
   const [girdiler, setGirdiler] = useState([]);
 
-  // Form input alanları için state
+  // Form input state'leri
   const [malzemeAdi, setMalzemeAdi] = useState('');
   const [teknikOzellikler, setTeknikOzellikler] = useState('');
   const [malzemeTuru, setMalzemeTuru] = useState('');
   const [tedarikciFirma, setTedarikciFirma] = useState('');
   const [miktar, setMiktar] = useState('');
+  const [kontrolSonucu, setKontrolSonucu] = useState('Kabul');
 
-  // Girdi kontrol verilerini çekme
   const girdileriGetir = async () => {
     const { data, error } = await supabase
       .from('girdi_kontrol')
@@ -30,7 +30,6 @@ export default function App() {
     girdileriGetir();
   }, []);
 
-  // Siteden doğrudan veri ekleme fonksiyonu
   const yeniGirdiEkle = async (e) => {
     e.preventDefault();
 
@@ -47,7 +46,8 @@ export default function App() {
           teknik_ozellikler: teknikOzellikler, 
           malzeme_turu: malzemeTuru, 
           tedarikci_firma: tedarikciFirma,
-          miktar: miktar ? Number(miktar) : 0 
+          miktar: miktar ? Number(miktar) : 0,
+          kontrol_sonucu: kontrolSonucu
         }
       ]);
 
@@ -60,11 +60,11 @@ export default function App() {
       setMalzemeTuru('');
       setTedarikciFirma('');
       setMiktar('');
+      setKontrolSonucu('Kabul');
       girdileriGetir();
     }
   };
 
-  // Kayıt silme fonksiyonu
   const girdiSil = async (id) => {
     if (window.confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
       const { error } = await supabase
@@ -173,7 +173,7 @@ export default function App() {
             {/* Yeni Girdi Ekleme Formu */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '25px' }}>
               <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '15px' }}>Yeni Girdi Kontrol Kaydı Tanımla</h3>
-              <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', alignItems: 'end' }}>
+              <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '15px', alignItems: 'end' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Adı</label>
                   <input 
@@ -198,7 +198,7 @@ export default function App() {
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Malzeme Türü</label>
                   <input 
                     type="text" 
-                    placeholder="Örn: Bağlantı Elemanı" 
+                    placeholder="Örn: Bağlantı" 
                     value={malzemeTuru} 
                     onChange={(e) => setMalzemeTuru(e.target.value)}
                     style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
@@ -225,6 +225,18 @@ export default function App() {
                   />
                 </div>
                 <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '5px' }}>Kontrol Sonucu</label>
+                  <select 
+                    value={kontrolSonucu} 
+                    onChange={(e) => setKontrolSonucu(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', backgroundColor: 'white' }}
+                  >
+                    <option value="Kabul">Kabul</option>
+                    <option value="Şartlı Kabul">Şartlı Kabul</option>
+                    <option value="Ret">Ret</option>
+                  </select>
+                </div>
+                <div>
                   <button 
                     type="submit"
                     style={{
@@ -232,7 +244,7 @@ export default function App() {
                       backgroundColor: '#2563eb',
                       color: 'white',
                       border: 'none',
-                      padding: '10px 20px',
+                      padding: '10px 15px',
                       borderRadius: '6px',
                       fontWeight: 'bold',
                       cursor: 'pointer'
@@ -256,6 +268,7 @@ export default function App() {
                     <th style={{ padding: '10px' }}>Malzeme Türü</th>
                     <th style={{ padding: '10px' }}>Tedarikçi Firma</th>
                     <th style={{ padding: '10px' }}>Miktar</th>
+                    <th style={{ padding: '10px' }}>Sonuç</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>İşlemler</th>
                   </tr>
                 </thead>
@@ -269,6 +282,18 @@ export default function App() {
                         <td style={{ padding: '12px' }}>{item.malzeme_turu}</td>
                         <td style={{ padding: '12px' }}>{item.tedarikci_firma}</td>
                         <td style={{ padding: '12px' }}>{item.miktar}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ 
+                            backgroundColor: item.kontrol_sonucu === 'Kabul' ? '#dcfce7' : '#fee2e2',
+                            color: item.kontrol_sonucu === 'Kabul' ? '#166534' : '#991b1b',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: '600'
+                          }}>
+                            {item.kontrol_sonucu}
+                          </span>
+                        </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button 
                             onClick={() => girdiSil(item.id)}
@@ -289,7 +314,7 @@ export default function App() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                         Henüz kayıtlı girdi kontrol verisi bulunmuyor. Yukarıdaki formdan yeni kayıt ekleyebilirsiniz.
                       </td>
                     </tr>
