@@ -27,7 +27,7 @@ export default function App() {
   const [kontrolSonucu, setKontrolSonucu] = useState('Kabul');
   const [kontrolEden, setKontrolEden] = useState('');
 
-  // Doküman Master State'leri (Yerel Yol Destekli)
+  // Doküman Master State'leri
   const [dokumanlar, setDokumanlar] = useState([]);
   const [aramaMetni, setAramaMetni] = useState('');
   const [dokumanKodu, setDokumanKodu] = useState('');
@@ -35,6 +35,9 @@ export default function App() {
   const [kategori, setKategori] = useState('Prosedür');
   const [format, setFormat] = useState('Word');
   const [yerelDosyaYolu, setYerelDosyaYolu] = useState('');
+  
+  // Hangi butonun kopyalandığını takip etmek için (Görsel geri bildirim)
+  const [kopyalananId, setKopyalananId] = useState(null);
 
   const verileriGetir = async () => {
     const { data: girdiData } = await supabase.from('girdi_kontrol').select('*').order('id', { ascending: false });
@@ -148,11 +151,14 @@ export default function App() {
     }
   };
 
-  const yoluPanoyaKopyala = (yol) => {
+  const yoluPanoyaKopyala = (yol, id) => {
     navigator.clipboard.writeText(yol).then(() => {
-      alert("📋 Dosya yolu panoya kopyalandı!\n\nDosyayı açmak için:\n1. Klavyeden 'Win + R' tuşlarına basın.\n2. Açılan pencereye 'Ctrl + V' yapıp Enter'a basın.");
+      setKopyalananId(id);
+      setTimeout(() => {
+        setKopyalananId(null);
+      }, 2000); // 2 saniye sonra butonu eski haline getir
     }).catch(err => {
-      alert("Kopyalama başarısız: " + err);
+      console.error("Kopyalama hatası: ", err);
     });
   };
 
@@ -417,7 +423,7 @@ export default function App() {
         {/* DOKÜMAN MASTER LİSTESİ */}
         {aktifSekme === 'dokuman_master' && (
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '5px' }}>Doküman Master Listesi (Yerel Sabit Disk / Ağ Bağlantılı)</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '5px' }}>Doküman Master Listesi</h1>
             <p style={{ color: '#64748b', fontSize: '13px', marginTop: 0, marginBottom: '20px' }}>Prosedürler, talimatlar ve formlar arşivi</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
@@ -494,10 +500,20 @@ export default function App() {
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         {doc.orijinal_dosya_url ? (
                           <button 
-                            onClick={() => yoluPanoyaKopyala(doc.orijinal_dosya_url)} 
-                            style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            onClick={() => yoluPanoyaKopyala(doc.orijinal_dosya_url, doc.id)} 
+                            style={{ 
+                              backgroundColor: kopyalananId === doc.id ? '#15803d' : '#16a34a', 
+                              color: 'white', 
+                              border: 'none', 
+                              padding: '6px 12px', 
+                              borderRadius: '4px', 
+                              cursor: 'pointer', 
+                              fontSize: '12px', 
+                              fontWeight: 'bold',
+                              transition: 'background-color 0.2s'
+                            }}
                           >
-                            📋 Yolu Kopyala ve Aç
+                            {kopyalananId === doc.id ? '✓ Kopyalandı!' : '📋 Yolu Kopyala'}
                           </button>
                         ) : (
                           <span style={{ color: '#94a3b8', fontSize: '11px' }}>Yol Tanımlanmadı</span>
