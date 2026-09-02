@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import GirdiKontrol from './GirdiKontrol';
 import IlkParcaKontrol from './IlkParcaKontrol';
 import { supabase } from './supabaseClient';
 
@@ -383,52 +384,8 @@ export default function App() {
         {/* GİRDİ KONTROL */}
         {/* İLK PARÇA KONTROL (FAI) */}
 {aktifSekme === 'ilk_parca' && <IlkParcaKontrol />}
-        {aktifSekme === 'girdi_kontrol' && (
-          <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>Depo Malzeme Kabul & Girdi Kontrol</h1>
-            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '25px' }}>
-              <form onSubmit={yeniGirdiEkle} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'end' }}>
-                <input type="text" placeholder="Malzeme Adı *" value={malzemeAdi} onChange={(e) => setMalzemeAdi(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
-                <input type="text" placeholder="Tedarikçi Firma *" value={tedarikciFirma} onChange={(e) => setTedarikciFirma(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} required />
-                <input type="text" placeholder="İrsaliye No" value={irsaliyeNo} onChange={(e) => setIrsaliyeNo(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                <input type="text" placeholder="Parti / Lot No" value={partiNo} onChange={(e) => setPartiNo(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                <input type="number" placeholder="Miktar" value={miktar} onChange={(e) => setMiktar(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                <select value={kontrolSonucu} onChange={(e) => setKontrolSonucu(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
-                  <option value="Kabul">Kabul</option>
-                  <option value="Şartlı Kabul">Şartlı Kabul</option>
-                  <option value="Ret">Ret</option>
-                </select>
-                <input type="text" placeholder="Kontrol Eden" value={kontrolEden} onChange={(e) => setKontrolEden(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                <button type="submit" style={{ backgroundColor: '#581c87', color: 'white', border: 'none', padding: '11px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Kaydet</button>
-              </form>
-            </div>
-
-            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '13px' }}>
-                    <th style={{ padding: '10px' }}>Malzeme / Tedarikçi</th>
-                    <th style={{ padding: '10px' }}>İrsaliye / Lot</th>
-                    <th style={{ padding: '10px' }}>Miktar</th>
-                    <th style={{ padding: '10px' }}>Karar</th>
-                    <th style={{ padding: '10px' }}>İşlem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {girdiler.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>
-                      <td style={{ padding: '12px' }}><b>{item.malzeme_adi}</b><br/><span style={{ color: '#64748b' }}>{item.tedarikci_firma}</span></td>
-                      <td style={{ padding: '12px' }}>{item.irsaliye_no || '-'}<br/><span style={{ color: '#64748b' }}>{item.parti_no}</span></td>
-                      <td style={{ padding: '12px' }}>{item.miktar}</td>
-                      <td style={{ padding: '12px' }}>{item.kontrol_sonucu}</td>
-                      <td style={{ padding: '12px' }}><button onClick={() => girdiSil(item.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer' }}>Sil</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {aktifSekme === 'girdi_kontrol' && <GirdiKontrol />}
+        
 
         {/* DOKÜMAN MASTER LİSTESİ */}
         {aktifSekme === 'dokuman_master' && (
