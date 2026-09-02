@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import IlkParcaKontrol from './IlkParcaKontrol';
 import { supabase } from './supabaseClient';
 
 export default function App() {
@@ -268,7 +269,14 @@ export default function App() {
                 </div>
               )}
             </div>
-
+<div>
+  <button
+    onClick={() => setAktifSekme('ilk_parca')}
+    style={{ background: aktifSekme === 'ilk_parca' ? '#3b0764' : 'transparent', border: 'none', color: 'white', width: '100%', textAlign: 'left', padding: '8px 12px', cursor: 'pointer' }}
+  >
+    • İlk Parça Kontrol (FAI)
+  </button>
+</div>
             <div>
               <button 
                 onClick={() => menuToggle('uretim')}
@@ -373,6 +381,8 @@ export default function App() {
         )}
 
         {/* GİRDİ KONTROL */}
+        {/* İLK PARÇA KONTROL (FAI) */}
+{aktifSekme === 'ilk_parca' && <IlkParcaKontrol />}
         {aktifSekme === 'girdi_kontrol' && (
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>Depo Malzeme Kabul & Girdi Kontrol</h1>
