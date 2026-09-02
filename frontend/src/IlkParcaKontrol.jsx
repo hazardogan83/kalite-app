@@ -14,7 +14,7 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
   const [editingId, setEditingId] = useState(null);
   const [editStatus, setEditStatus] = useState('approved');
   const [editReason, setEditReason] = useState('');
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(true);
 
   // Giriş yapan kullanıcıyı ve kayıtları çek
   const kayitlariGetir = async () => {
