@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import * as XLSX from 'xlsx';
 
 export default function IlkParcaKontrol({ itemId, operatorId }) {
   const [workOrderCode, setWorkOrderCode] = useState('');
@@ -16,14 +17,8 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
   const [editReason, setEditReason] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(true);
 
-  // Giriş yapan kullanıcıyı ve kayıtları çek
+  // Kayıtları Çek
   const kayitlariGetir = async () => {
-    // Oturum durumunu kontrol et
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session && session.user) {
-      setIsAuthorized(true);
-    }
-
     const { data, error } = await supabase
       .from('process_quality_control')
       .select('*')
@@ -37,6 +32,29 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
   useEffect(() => {
     kayitlariGetir();
   }, []);
+
+  // Excel'e Aktar Fonksiyonu
+  const exportToExcel = () => {
+    if (kayitlar.length === 0) {
+      alert('Dışa aktarılacak kayıt bulunamadı.');
+      return;
+    }
+
+    const excelData = kayitlar.map((item) => ({
+      'Tarih / Saat': new Date(item.created_at).toLocaleString('tr-TR'),
+      'İş Emri No': item.work_order_code,
+      'Durum': item.status === 'approved' ? 'ONAYLANDI' : 'REDDEDİLDİ',
+      'Kritik Ölçü': item.critical_dimensions_ok ? 'OK' : 'NOK',
+      'Yüzey Kontrol': item.surface_finish_ok ? 'OK' : 'NOK',
+      'Açıklama / Red Sebebi': item.rejection_reason || '-',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'FAI Kayitlari');
+
+    XLSX.writeFile(workbook, `FAI_Kontrol_Raporu_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
 
   // Yeni Kayıt Ekleme
   const handleSubmit = async (status) => {
@@ -73,7 +91,7 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
     }
   };
 
-  // Güncelleme Modunu Başlat
+  // Düzenleme Modunu Başlat
   const handleEditStart = (item) => {
     setEditingId(item.id);
     setEditStatus(item.status);
@@ -214,7 +232,24 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
       </div>
 
       {/* GEÇMİŞ KAYITLAR TABLOSU */}
-      <h3>Geçmiş FAI Kontrol Kayıtları</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <h3 style={{ margin: 0 }}>Geçmiş FAI Kontrol Kayıtları</h3>
+        <button
+          onClick={exportToExcel}
+          style={{
+            backgroundColor: '#16a34a',
+            color: 'white',
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          📊 Excel'e Aktar
+        </button>
+      </div>
+
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: 'white', border: '1px solid #e5e7eb' }}>
         <thead>
           <tr style={{ background: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
@@ -242,7 +277,6 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
                 </td>
                 <td style={{ padding: '10px', fontWeight: 'bold' }}>{item.work_order_code}</td>
                 
-                {/* Durum Sütunu */}
                 <td style={{ padding: '10px' }}>
                   {editingId === item.id ? (
                     <select
@@ -270,7 +304,6 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
                 <td style={{ padding: '10px' }}>{item.critical_dimensions_ok ? 'OK' : 'NOK'}</td>
                 <td style={{ padding: '10px' }}>{item.surface_finish_ok ? 'OK' : 'NOK'}</td>
                 
-                {/* Açıklama Sütunu */}
                 <td style={{ padding: '10px', fontSize: '13px', color: '#4b5563' }}>
                   {editingId === item.id ? (
                     <input
@@ -284,7 +317,6 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
                   )}
                 </td>
 
-                {/* İşlemler Sütunu */}
                 {isAuthorized && (
                   <td style={{ padding: '10px', textAlign: 'center' }}>
                     {editingId === item.id ? (
