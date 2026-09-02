@@ -9,9 +9,20 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [kayitlar, setKayitlar] = useState([]);
+  
+  // Düzenleme durumu için state'ler
+  const [editingId, setEditingId] = useState(null);
+  const [editStatus, setEditStatus] = useState('approved');
+  const [editReason, setEditReason] = useState('');
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
 
-  // Geçmiş kayıtları Supabase'den çekme fonksiyonu
+  // Giriş yapan kullanıcıyı ve kayıtları çek
   const kayitlariGetir = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setCurrentUserEmail(user.email);
+    }
+
     const { data, error } = await supabase
       .from('process_quality_control')
       .select('*')
@@ -26,6 +37,7 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
     kayitlariGetir();
   }, []);
 
+  // Yeni Kayıt Ekleme
   const handleSubmit = async (status) => {
     setLoading(true);
     setMessage('');
@@ -56,14 +68,58 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
       setCriticalOk(false);
       setSurfaceOk(false);
       setRejectionReason('');
-      
-      // Kayıt başarıyla eklendiğinde tabloyu anında güncelle
       kayitlariGetir();
     }
   };
 
+  // Güncelleme Modunu Başlat
+  const handleEditStart = (item) => {
+    setEditingId(item.id);
+    setEditStatus(item.status);
+    setEditReason(item.rejection_reason || '');
+  };
+
+  // Güncellemeyi Kaydet
+  const handleEditSave = async (id) => {
+    setLoading(true);
+    const { error } = await supabase
+      .from('process_quality_control')
+      .update({
+        status: editStatus,
+        rejection_reason: editReason,
+      })
+      .eq('id', id);
+
+    setLoading(false);
+    if (!error) {
+      setEditingId(null);
+      kayitlariGetir();
+    } else {
+      alert(`Güncelleme hatası: ${error.message}`);
+    }
+  };
+
+  // Kayıt Silme
+  const handleDelete = async (id) => {
+    if (window.confirm('Bu FAI kaydını silmek istediğinizden emin misiniz?')) {
+      const { error } = await supabase
+        .from('process_quality_control')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        kayitlariGetir();
+      } else {
+        alert(`Silme hatası: ${error.message}`);
+      }
+    }
+  };
+
+  // Yetkili kullanıcı kontrolü (Sadece senin e-postan düzenleyebilir)
+  const isAuthorized = currentUserEmail === 'hazar@minyaturmakina.com';
+
   return (
-    <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+    <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       <h2>İlk Parça Onay Formu (FAI)</h2>
 
       {/* FORM ALANI */}
@@ -170,12 +226,13 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
             <th style={{ padding: '10px' }}>Kritik Ölçü</th>
             <th style={{ padding: '10px' }}>Yüzey Kontrol</th>
             <th style={{ padding: '10px' }}>Açıklama / Red Sebebi</th>
+            {isAuthorized && <th style={{ padding: '10px', textAlign: 'center' }}>İşlemler</th>}
           </tr>
         </thead>
         <tbody>
           {kayitlar.length === 0 ? (
             <tr>
-              <td colSpan="6" style={{ padding: '15px', textAlign: 'center', color: '#6b7280' }}>
+              <td colSpan={isAuthorized ? 7 : 6} style={{ padding: '15px', textAlign: 'center', color: '#6b7280' }}>
                 Henüz kayıtlı bir FAI kontrolü bulunmuyor.
               </td>
             </tr>
@@ -186,23 +243,65 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
                   {new Date(item.created_at).toLocaleString('tr-TR')}
                 </td>
                 <td style={{ padding: '10px', fontWeight: 'bold' }}>{item.work_order_code}</td>
+                
+                {/* Durum Sütunu (Düzenleme Modu Kontrolü) */}
                 <td style={{ padding: '10px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    background: item.status === 'approved' ? '#10b981' : '#ef4444'
-                  }}>
-                    {item.status === 'approved' ? 'ONAYLANDI' : 'REDDEDİLDİ'}
-                  </span>
+                  {editingId === item.id ? (
+                    <select
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value)}
+                      style={{ padding: '4px', borderRadius: '4px' }}
+                    >
+                      <option value="approved">ONAYLANDI</option>
+                      <option value="rejected">REDDEDİLDİ</option>
+                    </select>
+                  ) : (
+                    <span style={{
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      color: 'white',
+                      background: item.status === 'approved' ? '#10b981' : '#ef4444'
+                    }}>
+                      {item.status === 'approved' ? 'ONAYLANDI' : 'REDDEDİLDİ'}
+                    </span>
+                  )}
                 </td>
+
                 <td style={{ padding: '10px' }}>{item.critical_dimensions_ok ? 'OK' : 'NOK'}</td>
                 <td style={{ padding: '10px' }}>{item.surface_finish_ok ? 'OK' : 'NOK'}</td>
+                
+                {/* Açıklama Sütunu (Düzenleme Modu Kontrolü) */}
                 <td style={{ padding: '10px', fontSize: '13px', color: '#4b5563' }}>
-                  {item.rejection_reason || '-'}
+                  {editingId === item.id ? (
+                    <input
+                      type="text"
+                      value={editReason}
+                      onChange={(e) => setEditReason(e.target.value)}
+                      style={{ width: '100%', padding: '4px' }}
+                    />
+                  ) : (
+                    item.rejection_reason || '-'
+                  )}
                 </td>
+
+                {/* İşlemler Sütunu (Sadece Yetkili Yöneticiye Görünür) */}
+                {isAuthorized && (
+                  <td style={{ padding: '10px', textAlign: 'center' }}>
+                    {editingId === item.id ? (
+                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                        <button onClick={() => handleEditSave(item.id)} style={{ padding: '4px 8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Kaydet</button>
+                        <button onClick={() => setEditingId(null)} style={{ padding: '4px 8px', background: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>İptal</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                        <button onClick={() => handleEditStart(item)} style={{ padding: '4px 8px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Düzenle</button>
+                        <button onClick={() => handleDelete(item.id)} style={{ padding: '4px 8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Sil</button>
+                      </div>
+                    )}
+                  </td>
+                )}
               </tr>
             ))
           )}
