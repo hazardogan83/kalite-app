@@ -14,13 +14,14 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
   const [editingId, setEditingId] = useState(null);
   const [editStatus, setEditStatus] = useState('approved');
   const [editReason, setEditReason] = useState('');
-  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   // Giriş yapan kullanıcıyı ve kayıtları çek
   const kayitlariGetir = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setCurrentUserEmail(user.email);
+    // Oturum durumunu kontrol et
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session && session.user) {
+      setIsAuthorized(true);
     }
 
     const { data, error } = await supabase
@@ -114,9 +115,6 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
       }
     }
   };
-
-  // Yetkili kullanıcı kontrolü (Sadece senin e-postan düzenleyebilir)
-  const isAuthorized = currentUserEmail === 'hazar@minyaturmakina.com';
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif' }}>
@@ -244,7 +242,7 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
                 </td>
                 <td style={{ padding: '10px', fontWeight: 'bold' }}>{item.work_order_code}</td>
                 
-                {/* Durum Sütunu (Düzenleme Modu Kontrolü) */}
+                {/* Durum Sütunu */}
                 <td style={{ padding: '10px' }}>
                   {editingId === item.id ? (
                     <select
@@ -272,7 +270,7 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
                 <td style={{ padding: '10px' }}>{item.critical_dimensions_ok ? 'OK' : 'NOK'}</td>
                 <td style={{ padding: '10px' }}>{item.surface_finish_ok ? 'OK' : 'NOK'}</td>
                 
-                {/* Açıklama Sütunu (Düzenleme Modu Kontrolü) */}
+                {/* Açıklama Sütunu */}
                 <td style={{ padding: '10px', fontSize: '13px', color: '#4b5563' }}>
                   {editingId === item.id ? (
                     <input
@@ -286,7 +284,7 @@ export default function IlkParcaKontrol({ itemId, operatorId }) {
                   )}
                 </td>
 
-                {/* İşlemler Sütunu (Sadece Yetkili Yöneticiye Görünür) */}
+                {/* İşlemler Sütunu */}
                 {isAuthorized && (
                   <td style={{ padding: '10px', textAlign: 'center' }}>
                     {editingId === item.id ? (
