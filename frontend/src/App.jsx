@@ -37,6 +37,8 @@ export default function App() {
   const [kategori, setKategori] = useState('Prosedür');
   const [format, setFormat] = useState('Word');
   const [yerelDosyaYolu, setYerelDosyaYolu] = useState('');
+  const [yayinTarihi, setYayinTarihi] = useState(new Date().toISOString().split('T')[0]);
+  const [revizyonTarihi, setRevizyonTarihi] = useState(new Date().toISOString().split('T')[0]);
   
   // Hangi butonun kopyalandığını takip etmek için (Görsel geri bildirim)
   const [kopyalananId, setKopyalananId] = useState(null);
@@ -130,7 +132,8 @@ export default function App() {
         kategori: kategori, 
         format: format, 
         revizyon_no: yeniRevizyonNo, 
-        yayin_tarihi: new Date().toISOString().split('T')[0],
+        yayin_tarihi: yayinTarihi || new Date().toISOString().split('T')[0],
+        revizyon_tarihi: revizyonTarihi || new Date().toISOString().split('T')[0],
         orijinal_dosya_url: yerelDosyaYolu 
       }
     ]);
@@ -158,7 +161,7 @@ export default function App() {
       setKopyalananId(id);
       setTimeout(() => {
         setKopyalananId(null);
-      }, 2000); // 2 saniye sonra butonu eski haline getir
+      }, 2000); 
     }).catch(err => {
       console.error("Kopyalama hatası: ", err);
     });
@@ -270,14 +273,14 @@ export default function App() {
                 </div>
               )}
             </div>
-<div>
-  <button
-    onClick={() => setAktifSekme('ilk_parca')}
-    style={{ background: aktifSekme === 'ilk_parca' ? '#3b0764' : 'transparent', border: 'none', color: 'white', width: '100%', textAlign: 'left', padding: '8px 12px', cursor: 'pointer' }}
-  >
-    • İlk Parça Kontrol (FAI)
-  </button>
-</div>
+            <div>
+              <button
+                onClick={() => setAktifSekme('ilk_parca')}
+                style={{ background: aktifSekme === 'ilk_parca' ? '#3b0764' : 'transparent', border: 'none', color: 'white', width: '100%', textAlign: 'left', padding: '8px 12px', cursor: 'pointer', borderRadius: '6px', fontSize: '13px' }}
+              >
+                • İlk Parça Kontrol (FAI)
+              </button>
+            </div>
             <div>
               <button 
                 onClick={() => menuToggle('uretim')}
@@ -381,11 +384,9 @@ export default function App() {
           </div>
         )}
 
-        {/* GİRDİ KONTROL */}
-        {/* İLK PARÇA KONTROL (FAI) */}
-{aktifSekme === 'ilk_parca' && <IlkParcaKontrol />}
+        {/* GİRDİ KONTROL & İLK PARÇA KONTROL */}
+        {aktifSekme === 'ilk_parca' && <IlkParcaKontrol />}
         {aktifSekme === 'girdi_kontrol' && <GirdiKontrol />}
-        
 
         {/* DOKÜMAN MASTER LİSTESİ */}
         {aktifSekme === 'dokuman_master' && (
@@ -425,6 +426,16 @@ export default function App() {
                     <option value="Excel">Excel (.xlsx)</option>
                     <option value="PDF">PDF (.pdf)</option>
                   </select>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>Yayın Tarihi</label>
+                    <input type="date" value={yayinTarihi} onChange={(e) => setYayinTarihi(e.target.value)} style={{ padding: '9px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%', boxSizing: 'border-box' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>Revizyon Tarihi</label>
+                    <input type="date" value={revizyonTarihi} onChange={(e) => setRevizyonTarihi(e.target.value)} style={{ padding: '9px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%', boxSizing: 'border-box' }} />
+                  </div>
                   
                   <div style={{ gridColumn: 'span 2' }}>
                     <input 
@@ -453,6 +464,8 @@ export default function App() {
                     <th style={{ padding: '10px' }}>Adı</th>
                     <th style={{ padding: '10px' }}>Kategori</th>
                     <th style={{ padding: '10px' }}>Revizyon</th>
+                    <th style={{ padding: '10px' }}>Yayın Tarihi</th>
+                    <th style={{ padding: '10px' }}>Rev. Tarihi</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Dosyaya Eriş</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Sil</th>
                   </tr>
@@ -464,6 +477,8 @@ export default function App() {
                       <td style={{ padding: '12px' }}>{doc.dokuman_adi}</td>
                       <td style={{ padding: '12px' }}>{doc.kategori}</td>
                       <td style={{ padding: '12px' }}><span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>Rev.{doc.revizyon_no || '00'}</span></td>
+                      <td style={{ padding: '12px', color: '#475569' }}>{doc.yayin_tarihi || '-'}</td>
+                      <td style={{ padding: '12px', color: '#475569' }}>{doc.revizyon_tarihi || '-'}</td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         {doc.orijinal_dosya_url ? (
                           <button 
